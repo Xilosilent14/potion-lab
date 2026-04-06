@@ -282,6 +282,77 @@ const PotionAudio = (() => {
     }
   }
 
+  /* ---- TTS (Jack's voice) ---- */
+  let ttsEnabled = true;
+  let currentUtterance = null;
+
+  // Jack-style voice: deep, theatrical, warm
+  // Uses Web Speech API — works on Chrome/Silk, falls back silently
+  function jackSpeak(text, onEnd) {
+    if (!ttsEnabled || !window.speechSynthesis) {
+      if (onEnd) onEnd();
+      return;
+    }
+    // Cancel any in-progress speech
+    window.speechSynthesis.cancel();
+
+    const utter = new SpeechSynthesisUtterance(text);
+    currentUtterance = utter;
+
+    // Pick the best available voice: deep male preferred
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v =>
+      /Google UK English Male|Daniel|David|Alex|en-GB/i.test(v.name + v.lang)
+    ) || voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('male'))
+      || voices.find(v => v.lang.startsWith('en'))
+      || voices[0];
+
+    if (preferred) utter.voice = preferred;
+
+    // Jack's theatrical delivery
+    utter.pitch  = 0.85;   // slightly deep
+    utter.rate   = 0.88;   // measured, deliberate
+    utter.volume = 0.9;
+
+    if (onEnd) utter.onend = onEnd;
+    window.speechSynthesis.speak(utter);
+  }
+
+  // Short praise lines Jack says after correct answers
+  const JACK_PRAISE = [
+    'Magnificent!',
+    'Splendid work!',
+    'Most excellent!',
+    'How wonderful!',
+    'Yes! Perfect!',
+    'Extraordinary!',
+    'Well done!',
+    'You are brilliant!',
+  ];
+
+  function jackPraise() {
+    const line = JACK_PRAISE[Math.floor(Math.random() * JACK_PRAISE.length)];
+    jackSpeak(line);
+  }
+
+  // Potion complete announcement
+  function jackAnnouncePotion(potionName) {
+    jackSpeak(`We brewed it! The ${potionName}! How magnificent!`);
+  }
+
+  // Wrong answer — Oogie/Lock-Shock-Barrel style
+  function jackWrongLine() {
+    const lines = [
+      'Oops! Try again!',
+      'Hmm, not quite!',
+      'Look carefully!',
+      'Almost! Look again!',
+    ];
+    jackSpeak(lines[Math.floor(Math.random() * lines.length)]);
+  }
+
+  function setTts(on) { ttsEnabled = on; if (!on && window.speechSynthesis) window.speechSynthesis.cancel(); }
+
   /* ---- Controls ---- */
   function setMusic(on) {
     musicEnabled = on;
@@ -297,7 +368,8 @@ const PotionAudio = (() => {
 
   return {
     resume,
-    startMusic, stopMusic, setMusic, setSfx,
+    startMusic, stopMusic, setMusic, setSfx, setTts,
+    jackSpeak, jackPraise, jackAnnouncePotion, jackWrongLine,
     playCorrect, playWrong, playPickup,
     playCauldronBubble, playCauldronErupt, playPotionComplete,
     playZeroYip, playStreak

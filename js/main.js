@@ -15,6 +15,8 @@
   });
 
   function registerSW() {
+    // Skip SW on localhost to prevent caching during development
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
@@ -31,8 +33,18 @@
   /* ---- Settings ---- */
   function applySettings() {
     const s = PotionProgress.getSettings();
-    PotionAudio.setMusic(s.music);
-    PotionAudio.setSfx(s.sfx);
+    PotionAudio.setMusic(s.music !== false);
+    PotionAudio.setSfx(s.sfx !== false);
+    PotionAudio.setTts(s.tts !== false);
+  }
+
+  // Pre-load voices on user gesture (required by some browsers)
+  function primeVoices() {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.getVoices();
+      // Chrome loads voices async
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
   }
 
   /* ---- Screen Router ---- */
@@ -509,6 +521,9 @@
 
     hideSallyHint();
     PotionEngine.jackTalk();
+
+    // Jack speaks the prompt aloud
+    setTimeout(() => PotionAudio.jackSpeak(q.prompt.replace('\n', '. ')), 300);
   }
 
   /* ---- ANSWER HANDLING ---- */
@@ -538,6 +553,7 @@
     PotionProgress.recordAnswer(q.conceptId, q.type, true, timeMs);
     PotionEngine.zeroHappy();
     PotionEngine.addIngredient();
+    PotionAudio.jackPraise();
 
     if (game.streak >= 3) {
       PotionAudio.playStreak(Math.min(5, game.streak));
@@ -568,6 +584,7 @@
 
     PotionProgress.recordAnswer(q.conceptId, q.type, false, timeMs);
     PotionEngine.zeroSad();
+    PotionAudio.jackWrongLine();
 
     updateHUD();
     showWrongFeedback();
@@ -647,7 +664,12 @@
     PotionProgress.collectPotion(potion.id);
     game.sessionPotions.push(potion);
 
-    setTimeout(() => showPotionComplete(potion), 1200);
+    const newCount = PotionProgress.getPotionCount();
+    setTimeout(() => {
+      showPotionComplete(potion);
+      // Small delay so potion screen appears first, then unlock
+      setTimeout(() => checkUnlocks(newCount), 2200);
+    }, 1200);
   }
 
   function showPotionComplete(potion) {
@@ -660,6 +682,9 @@
     if (icon) icon.textContent = potion.icon;
     if (name) name.textContent = potion.name;
     if (count) count.textContent = `Potion ${PotionProgress.getPotionCount()} of 24`;
+
+    // Jack announces the potion
+    setTimeout(() => PotionAudio.jackAnnouncePotion(potion.name), 600);
 
     // Spawn celebration on the potion canvas
     const potionCanvas = document.getElementById('potion-canvas');
@@ -779,15 +804,195 @@
     const s = PotionProgress.getSettings();
     const mBtn = document.getElementById('toggle-music');
     const sBtn = document.getElementById('toggle-sfx');
+    const tBtn = document.getElementById('toggle-tts');
     const nameInput = document.getElementById('player-name-input');
 
-    if (mBtn) { mBtn.dataset.on = s.music ? 'true' : 'false'; mBtn.textContent = s.music ? 'ON' : 'OFF'; }
-    if (sBtn) { sBtn.dataset.on = s.sfx ? 'true' : 'false'; sBtn.textContent = s.sfx ? 'ON' : 'OFF'; }
+    if (mBtn) { mBtn.dataset.on = s.music !== false ? 'true' : 'false'; mBtn.textContent = s.music !== false ? 'ON' : 'OFF'; }
+    if (sBtn) { sBtn.dataset.on = s.sfx !== false ? 'true' : 'false'; sBtn.textContent = s.sfx !== false ? 'ON' : 'OFF'; }
+    if (tBtn) { tBtn.dataset.on = s.tts !== false ? 'true' : 'false'; tBtn.textContent = s.tts !== false ? 'ON' : 'OFF'; }
     if (nameInput) nameInput.value = PotionProgress.getPlayerName();
   }
 
   function closeSettings() {
     const modal = document.getElementById('settings-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  /* ---- ROOM UNLOCKS ---- */
+  const UNLOCKS = [
+    {
+      at: 3,
+      icon: '💕',
+      title: 'Sally Joins!',
+      body: 'Sally will now help with hints when things get tricky. She is always gentle!',
+      tts: 'Oh my, Sally is here to help!'
+    },
+    {
+      at: 5,
+      icon: '🪦',
+      title: 'The Graveyard Opens!',
+      body: 'A new room unlocked! Find letters on the gravestones in the Halloween graveyard.',
+      tts: 'The graveyard is open! Find the letters!'
+    },
+    {
+      at: 8,
+      icon: '👻',
+      title: "Zero's New Collar!",
+      body: 'Zero got a glowing collar! He is extra happy to cheer you on now.',
+      tts: 'Zero got a new collar! Look how it glows!'
+    },
+    {
+      at: 10,
+      icon: '🏘️',
+      title: 'Halloween Town Square!',
+      body: "The Town Square is open! Help fix the Halloween parade with the Mayor.",
+      tts: 'Halloween Town Square is open! The Mayor needs your help!'
+    },
+    {
+      at: 15,
+      icon: '🎲',
+      title: "Oogie's Lair Unlocked!",
+      body: 'Oogie Boogie stole the ingredients! Beat his number game to get them back.',
+      tts: "Oogie Boogie's lair is open! Can you beat his number game?"
+    },
+    {
+      at: 18,
+      icon: '🌙',
+      title: "Jack's Tower!",
+      body: 'The very top of Spiral Hill! Only the most magical potions are brewed up here.',
+      tts: "Jack's tower is open! We made it to the very top!"
+    },
+    {
+      at: 24,
+      icon: '✨',
+      title: 'All Potions Collected!',
+      body: 'You brewed every single potion in Halloween Town! Jack is SO proud of you!',
+      tts: 'You did it! Every potion is brewed! Jack is so proud!'
+    }
+  ];
+
+  // Track which unlocks have been shown this save (stored in progress)
+  function checkUnlocks(potionCount) {
+    const s = PotionProgress.get();
+    const shown = s.shownUnlocks || [];
+    const toShow = UNLOCKS.find(u => u.at === potionCount && !shown.includes(u.at));
+    if (!toShow) return;
+
+    // Mark shown
+    shown.push(toShow.at);
+    s.shownUnlocks = shown;
+    PotionProgress.save();
+
+    showUnlockModal(toShow);
+  }
+
+  function showUnlockModal(unlock) {
+    const modal = document.getElementById('unlock-modal');
+    const icon  = document.getElementById('unlock-icon');
+    const title = document.getElementById('unlock-title');
+    const body  = document.getElementById('unlock-body');
+    if (!modal) return;
+
+    if (icon)  icon.textContent  = unlock.icon;
+    if (title) title.textContent = unlock.title;
+    if (body)  body.textContent  = unlock.body;
+
+    modal.style.display = 'flex';
+    PotionAudio.jackSpeak(unlock.tts);
+    PotionEngine.jackCelebrate();
+    PotionEngine.zeroTrick();
+  }
+
+  /* ---- PARENT DASHBOARD ---- */
+  function showParentDashboard() {
+    const modal = document.getElementById('parent-dashboard');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    renderDashboard();
+  }
+
+  function renderDashboard() {
+    const s = PotionProgress.get();
+    const concepts = Object.values(s.concepts || {});
+
+    // Summary stats
+    const summaryEl = document.getElementById('dash-summary');
+    if (summaryEl) {
+      const potions = s.potionsCollected.length;
+      const correct = s.totalCorrect || 0;
+      const attempts = s.totalAttempts || 0;
+      const acc = attempts > 0 ? Math.round((correct / attempts) * 100) : 0;
+      const mastered = concepts.filter(c => c.state === 'mastered').length;
+
+      summaryEl.innerHTML = `
+        <div class="dash-stat">
+          <span class="dash-stat-value">🧪 ${potions}</span>
+          <span class="dash-stat-label">Potions Brewed</span>
+        </div>
+        <div class="dash-stat">
+          <span class="dash-stat-value">✅ ${correct}</span>
+          <span class="dash-stat-label">Correct Answers</span>
+        </div>
+        <div class="dash-stat">
+          <span class="dash-stat-value">🎯 ${acc}%</span>
+          <span class="dash-stat-label">Accuracy</span>
+        </div>
+        <div class="dash-stat">
+          <span class="dash-stat-value">⭐ ${mastered}</span>
+          <span class="dash-stat-label">Concepts Mastered</span>
+        </div>
+      `;
+    }
+
+    // Concept breakdown by type
+    const gridEl = document.getElementById('dash-grid');
+    if (!gridEl) return;
+
+    if (concepts.length === 0) {
+      gridEl.innerHTML = '<p class="dash-empty">Play some rounds to see Asher\'s progress here!</p>';
+      return;
+    }
+
+    const SECTIONS = [
+      { key: 'color',        label: '🎨 Colors',      types: ['color', 'color-mix'] },
+      { key: 'shape',        label: '🔷 Shapes',      types: ['shape'] },
+      { key: 'count',        label: '🔢 Counting',    types: ['count', 'count-1-5', 'count-6-10', 'count-dice', 'more-less'] },
+      { key: 'letter',       label: '🔤 Letters',     types: ['letter', 'letter-sound'] },
+      { key: 'pattern',      label: '🔁 Patterns',    types: ['pattern', 'sort'] },
+      { key: 'size',         label: '📏 Size',        types: ['size'] },
+    ];
+
+    let html = '';
+    SECTIONS.forEach(section => {
+      const sectionConcepts = concepts.filter(c => section.types.includes(c.type));
+      if (sectionConcepts.length === 0) return;
+
+      html += `<div class="dash-section-title">${section.label}</div>`;
+      sectionConcepts.sort((a, b) => {
+        const order = { mastered: 0, familiar: 1, learning: 2, new: 3, relearning: 2 };
+        return (order[a.state] || 3) - (order[b.state] || 3);
+      }).forEach(c => {
+        const acc = c.attempts > 0 ? Math.round((c.correct / c.attempts) * 100) : 0;
+        const state = c.state === 'relearning' ? 'learning' : (c.state || 'new');
+        const label = c.id.replace(/_/g, ' ').replace(/^(color|shape|letter|count|sort|pattern|size)\s*/i, '');
+        const displayName = label.charAt(0).toUpperCase() + label.slice(1);
+        html += `
+          <div class="dash-concept-row">
+            <span class="dash-concept-name">${displayName}</span>
+            <div class="dash-bar-wrap">
+              <div class="dash-bar-fill ${state}" style="width:${acc}%"></div>
+            </div>
+            <span class="dash-concept-badge ${state}">${state}</span>
+          </div>
+        `;
+      });
+    });
+
+    gridEl.innerHTML = html || '<p class="dash-empty">No concept data yet.</p>';
+  }
+
+  function closeParentDashboard() {
+    const modal = document.getElementById('parent-dashboard');
     if (modal) modal.style.display = 'none';
   }
 
@@ -818,6 +1023,12 @@
     // Menu
     on('btn-play', 'click', () => startGame());
     on('btn-settings-menu', 'click', () => openSettings());
+    on('btn-dashboard', 'click', () => openParentalGate(() => showParentDashboard()));
+    on('btn-dash-close', 'click', () => closeParentDashboard());
+    on('btn-unlock-close', 'click', () => {
+      const modal = document.getElementById('unlock-modal');
+      if (modal) modal.style.display = 'none';
+    });
 
     // Game HUD
     on('btn-menu', 'click', () => openParentalGate(() => showMenu()));
@@ -844,21 +1055,24 @@
     on('btn-settings-save', 'click', () => {
       const mBtn = document.getElementById('toggle-music');
       const sBtn = document.getElementById('toggle-sfx');
+      const tBtn = document.getElementById('toggle-tts');
       const nameInput = document.getElementById('player-name-input');
       const musicOn = mBtn?.dataset.on === 'true';
       const sfxOn = sBtn?.dataset.on === 'true';
+      const ttsOn = tBtn?.dataset.on === 'true';
       const name = nameInput?.value?.trim() || 'Asher';
 
-      PotionProgress.saveSettings({ music: musicOn, sfx: sfxOn });
+      PotionProgress.saveSettings({ music: musicOn, sfx: sfxOn, tts: ttsOn });
       PotionProgress.setPlayerName(name);
       PotionAudio.setMusic(musicOn);
       PotionAudio.setSfx(sfxOn);
+      PotionAudio.setTts(ttsOn);
       closeSettings();
     });
     on('btn-settings-close', 'click', () => closeSettings());
 
     // Toggle buttons
-    ['toggle-music', 'toggle-sfx'].forEach(id => {
+    ['toggle-music', 'toggle-sfx', 'toggle-tts'].forEach(id => {
       on(id, 'click', () => {
         const btn = document.getElementById(id);
         if (!btn) return;
@@ -881,8 +1095,9 @@
     on('btn-gate-submit', 'click', () => {
       const ans = parseInt(document.getElementById('gate-answer')?.value || '0');
       if (ans === gateA + gateB) {
+        const cb = gateCallback;  // capture before closeParentalGate nulls it
         closeParentalGate();
-        if (gateCallback) gateCallback();
+        if (cb) cb();
       } else {
         const q = document.getElementById('gate-question');
         if (q) q.textContent = `Nope! Try again: ${gateA} + ${gateB} = ?`;
@@ -895,9 +1110,9 @@
       if (e.key === 'Enter') document.getElementById('btn-gate-submit')?.click();
     });
 
-    // Start music on first touch
-    document.addEventListener('touchstart', () => PotionAudio.resume(), { once: true });
-    document.addEventListener('click', () => PotionAudio.resume(), { once: true });
+    // Start music + prime TTS on first touch
+    document.addEventListener('touchstart', () => { PotionAudio.resume(); primeVoices(); }, { once: true });
+    document.addEventListener('click', () => { PotionAudio.resume(); primeVoices(); }, { once: true });
   }
 
   function startNextPotion() {
