@@ -1,5 +1,5 @@
 /* Jack's Potion Lab - Service Worker v1.0 */
-const CACHE = 'potion-lab-v2';
+const CACHE = 'potion-lab-v3';
 const ASSETS = [
   '/',
   '/index.html',

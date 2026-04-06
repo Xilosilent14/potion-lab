@@ -504,17 +504,9 @@
     area.innerHTML = '';
 
     q.options.forEach((opt, i) => {
-      const btn = document.createElement('button');
-      if (opt.isNumber || opt.isLetter) {
-        btn.className = 'count-option-btn';
-        btn.textContent = opt.emoji;
-        btn.style.animationDelay = `${i * 0.08}s`;
-      } else {
-        btn.className = 'ingredient-btn';
-        btn.innerHTML = `<span>${opt.emoji}</span><span class="ingredient-label">${opt.label}</span>`;
-      }
+      const btn = createIngredientButton(opt, q.type);
       btn.dataset.correct = opt.correct ? '1' : '0';
-      btn.style.animation = `badge-pop 0.3s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.08}s both`;
+      btn.style.animation = `badge-pop 0.3s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.09}s both`;
       btn.addEventListener('click', () => handleAnswer(btn, opt, q));
       area.appendChild(btn);
     });
@@ -524,6 +516,48 @@
 
     // Jack speaks the prompt aloud
     setTimeout(() => PotionAudio.jackSpeak(q.prompt.replace('\n', '. ')), 300);
+  }
+
+  function getColorHex(label) {
+    const c = COLORS.find(c => c.label === label || c.name === label.toLowerCase());
+    return c ? c.hex : '#888888';
+  }
+
+  function createIngredientButton(opt, type) {
+    const btn = document.createElement('button');
+    switch (type) {
+      case 'color': {
+        btn.className = 'opt-color';
+        btn.style.backgroundColor = getColorHex(opt.label);
+        btn.style.borderColor = getColorHex(opt.label);
+        btn.innerHTML = `<span class="opt-color-label">${opt.label}</span>`;
+        break;
+      }
+      case 'letter':
+      case 'letter-sound': {
+        btn.className = 'opt-letter';
+        btn.innerHTML = `<span class="opt-letter-char">${opt.emoji}</span>`;
+        break;
+      }
+      case 'count':
+      case 'more-less':
+      case 'count-dice': {
+        btn.className = 'opt-number';
+        btn.innerHTML = `<span class="opt-number-char">${opt.emoji}</span>`;
+        break;
+      }
+      case 'shape': {
+        btn.className = 'opt-shape';
+        btn.dataset.shape = (opt.label || '').toLowerCase();
+        btn.innerHTML = `<span class="opt-shape-icon">${opt.emoji}</span><span class="opt-shape-label">${opt.label}</span>`;
+        break;
+      }
+      default: {
+        btn.className = 'ingredient-btn';
+        btn.innerHTML = `<span>${opt.emoji}</span><span class="ingredient-label">${opt.label}</span>`;
+      }
+    }
+    return btn;
   }
 
   /* ---- ANSWER HANDLING ---- */
@@ -563,8 +597,9 @@
 
     // Fly ingredient into cauldron
     const rect = btn.getBoundingClientRect();
-    const emoji = btn.querySelector('span')?.textContent || btn.textContent;
-    PotionEngine.flyIngredientTo(emoji, rect.left + rect.width / 2, rect.top + rect.height / 2);
+    // Use the question's first option emoji or the button's visible content
+    const flyEmoji = q.options.find(o => o.correct)?.emoji || btn.querySelector('span')?.textContent || '✨';
+    PotionEngine.flyIngredientTo(flyEmoji, rect.left + rect.width / 2, rect.top + rect.height / 2);
 
     setTimeout(() => {
       if (game.questionsThisPotion >= game.questionsNeeded) {
@@ -598,7 +633,7 @@
     setTimeout(() => {
       game.answered = false;
       // Highlight the correct answer gently
-      document.querySelectorAll('.ingredient-btn, .count-option-btn').forEach(b => {
+      document.querySelectorAll('[data-correct]').forEach(b => {
         if (b.dataset.correct === '1') b.classList.add('glow-pulse');
       });
     }, 600);

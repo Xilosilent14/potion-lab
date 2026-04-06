@@ -1,5 +1,6 @@
-/* Jack's Potion Lab — Canvas Engine v1.0
-   Renders: background, Jack, Zero, cauldron, ingredient particles, celebration effects
+/* Jack's Potion Lab — Canvas Engine v2.0
+   Renders: background, Jack, Zero, cauldron, particles, atmospheric effects
+   Room-aware: 5 room backgrounds with distinct atmosphere
 */
 
 const PotionEngine = (() => {
@@ -8,43 +9,55 @@ const PotionEngine = (() => {
   let canvas, ctx;
   let W, H;
   let raf = null;
-  let mode = 'menu'; // menu | game | celebrate
+  let mode = 'menu';
+  let currentRoom = 0;
 
   const particles = [];
   const stars = [];
+  const wisps = [];
+
+  // Room atmosphere palettes
+  const ROOMS = [
+    { bg0: '#1e0a42', bg1: '#0d0d2b', hillColor: '#06061a', fogColor: '#1a0a3e', accent: '#39ff14', name: 'Lab' },
+    { bg0: '#0a1a0a', bg1: '#050e05', hillColor: '#030a03', fogColor: '#0a1a0a', accent: '#90e890', name: 'Graveyard' },
+    { bg0: '#1a0830', bg1: '#10061e', hillColor: '#080414', fogColor: '#1a0830', accent: '#ff9a40', name: 'Town' },
+    { bg0: '#1c1400', bg1: '#0e0a00', hillColor: '#080600', fogColor: '#1c1400', accent: '#ffd700', name: "Oogie's" },
+    { bg0: '#0a0a2e', bg1: '#050518', hillColor: '#030310', fogColor: '#0a0a3e', accent: '#e8d5ff', name: 'Tower' }
+  ];
 
   // Characters
   const jack = {
-    x: 0, y: 0, w: 80, h: 140,
+    x: 0, y: 0, w: 80, h: 160,
     armAngle: 0,
     eyeScale: 1,
     bobY: 0,
-    state: 'idle',  // idle | talk | celebrate | hint
+    state: 'idle',
     stateTimer: 0
   };
 
   const zero = {
-    x: 0, y: 0, r: 22,
+    x: 0, y: 0, r: 26,
     noseGlow: 1,
     bobAngle: 0,
     bobX: 0,
-    state: 'idle',  // idle | happy | trick | sad
+    state: 'idle',
     stateTimer: 0,
-    tailAngle: 0
+    tailAngle: 0,
+    earWag: 0
   };
 
   const cauldron = {
-    x: 0, y: 0, w: 140, h: 110,
+    x: 0, y: 0, w: 150, h: 115,
     bubblePhase: 0,
     color: '#1a8a2e',
     glowIntensity: 0.3,
     erupting: false,
     eruptTimer: 0,
     ingredientCount: 0,
-    maxIngredients: 3
+    maxIngredients: 3,
+    steamPhase: 0
   };
 
-  // Ingredient fly-in
   let flyIngredient = null;
 
   /* ---- Init ---- */
@@ -54,6 +67,7 @@ const PotionEngine = (() => {
     resize();
     window.addEventListener('resize', resize);
     generateStars();
+    generateWisps();
     positionCharacters();
     loop();
   }
@@ -66,29 +80,37 @@ const PotionEngine = (() => {
 
   function positionCharacters() {
     if (!W) return;
-    // Jack: left third, vertically centered in bottom 60%
-    jack.x = W * 0.15;
-    jack.y = H * 0.45;
-
-    // Zero: right of Jack, floating
-    zero.x = W * 0.30;
-    zero.y = H * 0.42;
-
-    // Cauldron: center-bottom
+    jack.x = W * 0.14;
+    jack.y = H * 0.47;
+    zero.x = W * 0.31;
+    zero.y = H * 0.41;
     cauldron.x = W * 0.5 - cauldron.w / 2;
-    cauldron.y = H * 0.62;
+    cauldron.y = H * 0.60;
   }
 
   function generateStars() {
     stars.length = 0;
-    const count = 60;
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < 70; i++) {
       stars.push({
         x: Math.random(),
-        y: Math.random() * 0.75,
-        r: Math.random() * 1.5 + 0.3,
+        y: Math.random() * 0.72,
+        r: Math.random() * 1.8 + 0.3,
         twinkle: Math.random() * Math.PI * 2,
-        speed: Math.random() * 0.02 + 0.01
+        speed: Math.random() * 0.025 + 0.008,
+        color: Math.random() > 0.85 ? '#ffd700' : Math.random() > 0.7 ? '#e8d5ff' : '#ffffff'
+      });
+    }
+  }
+
+  function generateWisps() {
+    wisps.length = 0;
+    for (let i = 0; i < 4; i++) {
+      wisps.push({
+        x: 0.15 + Math.random() * 0.6,
+        y: 0.45 + Math.random() * 0.35,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.008 + Math.random() * 0.01,
+        r: 5 + Math.random() * 5
       });
     }
   }
@@ -104,13 +126,13 @@ const PotionEngine = (() => {
   function update() {
     const t = Date.now() / 1000;
 
-    // Stars twinkle
     stars.forEach(s => s.twinkle += s.speed);
+    wisps.forEach(w => { w.phase += w.speed; });
 
     // Jack animation
-    jack.bobY = Math.sin(t * 1.2) * 6;
-    jack.armAngle = Math.sin(t * 0.8) * 0.15;
-    jack.eyeScale = 1 + Math.sin(t * 2) * 0.05;
+    jack.bobY = Math.sin(t * 1.1) * 5;
+    jack.armAngle = Math.sin(t * 0.75) * 0.12;
+    jack.eyeScale = 1 + Math.sin(t * 1.8) * 0.04;
 
     if (jack.stateTimer > 0) {
       jack.stateTimer--;
@@ -118,10 +140,11 @@ const PotionEngine = (() => {
     }
 
     // Zero animation
-    zero.bobAngle += 0.03;
-    zero.bobX = Math.sin(zero.bobAngle * 0.7) * 15;
-    zero.tailAngle = Math.sin(zero.bobAngle * 1.3) * 0.4;
-    zero.noseGlow = 0.7 + Math.sin(t * 2) * 0.3;
+    zero.bobAngle += 0.028;
+    zero.bobX = Math.sin(zero.bobAngle * 0.65) * 18;
+    zero.tailAngle = Math.sin(zero.bobAngle * 1.2) * 0.45;
+    zero.noseGlow = 0.7 + Math.sin(t * 2.2) * 0.3;
+    zero.earWag = Math.sin(zero.bobAngle * 0.9) * 0.15;
 
     if (zero.stateTimer > 0) {
       zero.stateTimer--;
@@ -130,26 +153,26 @@ const PotionEngine = (() => {
 
     // Cauldron
     cauldron.bubblePhase += 0.04;
+    cauldron.steamPhase += 0.03;
     const progress = cauldron.ingredientCount / cauldron.maxIngredients;
-    cauldron.glowIntensity = 0.3 + progress * 0.5;
-    const greenBlend = Math.floor(progress * 80 + 30);
-    cauldron.color = `rgb(20, ${greenBlend + 50}, 30)`;
+    cauldron.glowIntensity = 0.25 + progress * 0.6;
+    const gBlend = Math.floor(progress * 90 + 28);
+    cauldron.color = `rgb(18, ${gBlend + 48}, 28)`;
 
     if (cauldron.erupting) {
       cauldron.eruptTimer++;
-      if (cauldron.eruptTimer > 80) cauldron.erupting = false;
+      if (cauldron.eruptTimer > 90) cauldron.erupting = false;
     }
 
     // Fly ingredient
     if (flyIngredient) {
-      flyIngredient.t += 0.06;
-      // Cubic ease to cauldron center
+      flyIngredient.t += 0.055;
       const cx = cauldron.x + cauldron.w / 2;
-      const cy = cauldron.y + cauldron.h * 0.3;
-      flyIngredient.x += (cx - flyIngredient.x) * 0.12;
-      flyIngredient.y += (cy - flyIngredient.y) * 0.12;
-      flyIngredient.scale = 1 - flyIngredient.t * 0.8;
-      if (flyIngredient.t >= 1) flyIngredient = null;
+      const cy = cauldron.y + cauldron.h * 0.28;
+      flyIngredient.x += (cx - flyIngredient.x) * 0.11;
+      flyIngredient.y += (cy - flyIngredient.y) * 0.11;
+      flyIngredient.scale = Math.max(0, 1 - flyIngredient.t * 0.85);
+      if (flyIngredient.t >= 1.1) flyIngredient = null;
     }
 
     // Particles
@@ -157,7 +180,7 @@ const PotionEngine = (() => {
       const p = particles[i];
       p.x  += p.vx;
       p.y  += p.vy;
-      p.vy += p.gravity || 0.08;
+      p.vy += p.gravity || 0.07;
       p.vx *= 0.98;
       p.life--;
       p.alpha = p.life / p.maxLife;
@@ -171,6 +194,7 @@ const PotionEngine = (() => {
     drawBackground();
     drawStars();
     drawMoon();
+    drawWisps();
     drawCauldron();
     if (flyIngredient) drawFlyIngredient();
     drawZero();
@@ -178,48 +202,161 @@ const PotionEngine = (() => {
     drawParticles();
   }
 
+  /* ---- Background ---- */
   function drawBackground() {
-    const grad = ctx.createRadialGradient(W * 0.5, H * 0.3, 0, W * 0.5, H * 0.3, W * 0.8);
-    grad.addColorStop(0, '#1a0a3e');
-    grad.addColorStop(1, '#0d0d2b');
+    const room = ROOMS[currentRoom] || ROOMS[0];
+
+    // Sky gradient
+    const grad = ctx.createRadialGradient(W * 0.45, H * 0.25, 0, W * 0.5, H * 0.35, W * 0.9);
+    grad.addColorStop(0, room.bg0);
+    grad.addColorStop(1, room.bg1);
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
 
-    // Subtle fog layer at bottom
-    const fog = ctx.createLinearGradient(0, H * 0.7, 0, H);
-    fog.addColorStop(0, 'rgba(13,13,43,0)');
-    fog.addColorStop(1, 'rgba(26,10,62,0.5)');
-    ctx.fillStyle = fog;
-    ctx.fillRect(0, H * 0.7, W, H * 0.3);
+    // Room-specific background elements
+    switch (currentRoom) {
+      case 1: drawGraveyardElements(room); break;
+      case 2: drawTownElements(room);      break;
+      case 3: drawOogieLairElements(room); break;
+      case 4: drawTowerElements(room);     break;
+      default: drawLabElements(room);      break;
+    }
 
-    // Spiral Hill silhouette (right side)
-    drawSpiralHill();
+    // Spiral Hill (always present, room-colored)
+    drawSpiralHill(room.hillColor);
+
+    // Ground fog
+    const fog = ctx.createLinearGradient(0, H * 0.68, 0, H);
+    fog.addColorStop(0, 'rgba(0,0,0,0)');
+    fog.addColorStop(1, room.fogColor + 'cc');
+    ctx.fillStyle = fog;
+    ctx.fillRect(0, H * 0.68, W, H * 0.32);
   }
 
-  function drawSpiralHill() {
+  function drawLabElements(room) {
+    // Subtle shelf/lab silhouette shapes on far right
     ctx.save();
-    ctx.fillStyle = '#060618';
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    // Right edge shelves
+    ctx.fillRect(W * 0.88, H * 0.28, W * 0.12, 4);
+    ctx.fillRect(W * 0.88, H * 0.40, W * 0.12, 4);
+    ctx.fillRect(W * 0.88, H * 0.52, W * 0.12, 4);
+    // Tiny potion silhouettes on shelves
+    [0.04, 0.07, 0.10].forEach((ox, i) => {
+      const sx = W * (0.89 + ox);
+      const sy = H * (0.28 - 0.04) - i;
+      ctx.fillRect(sx, sy - 12, 5, 12);
+      ctx.beginPath();
+      ctx.arc(sx + 2.5, sy - 14, 4, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  function drawGraveyardElements(room) {
+    // Tombstone silhouettes in background
+    ctx.save();
+    ctx.fillStyle = '#050e05';
+    const tombstones = [
+      { x: 0.58, y: 0.65, w: 24, h: 36 },
+      { x: 0.65, y: 0.68, w: 18, h: 28 },
+      { x: 0.75, y: 0.63, w: 28, h: 40 }
+    ];
+    tombstones.forEach(t => {
+      const tx = W * t.x;
+      const ty = H * t.y;
+      ctx.beginPath();
+      ctx.roundRect(tx, ty - t.h, t.w, t.h, [t.w / 2, t.w / 2, 0, 0]);
+      ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  function drawTownElements(room) {
+    // Building silhouettes
+    ctx.save();
+    ctx.fillStyle = 'rgba(8,4,20,0.8)';
+    const buildings = [
+      { x: 0.56, w: 0.06, h: 0.3 },
+      { x: 0.63, w: 0.05, h: 0.22 },
+      { x: 0.69, w: 0.08, h: 0.35 },
+      { x: 0.78, w: 0.05, h: 0.25 }
+    ];
+    buildings.forEach(b => {
+      ctx.fillRect(W * b.x, H * (0.65 - b.h), W * b.w, H * b.h);
+      // Lit windows (orange dots)
+      ctx.fillStyle = 'rgba(255,140,0,0.4)';
+      for (let wy = H * (0.65 - b.h) + 10; wy < H * 0.6; wy += 14) {
+        ctx.fillRect(W * b.x + 4, wy, 5, 5);
+      }
+      ctx.fillStyle = 'rgba(8,4,20,0.8)';
+    });
+    ctx.restore();
+  }
+
+  function drawOogieLairElements(room) {
+    // Bone/dice decorations
+    ctx.save();
+    ctx.fillStyle = 'rgba(60,50,10,0.6)';
+    // Floor bones
+    for (let i = 0; i < 4; i++) {
+      const bx = W * (0.55 + i * 0.1);
+      const by = H * 0.72;
+      ctx.beginPath();
+      ctx.ellipse(bx, by, 8, 4, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(bx + 18, by, 8, 4, -0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(bx + 4, by - 2, 14, 4);
+    }
+    ctx.restore();
+  }
+
+  function drawTowerElements(room) {
+    // Tower window glow on far right
+    ctx.save();
+    const wx = W * 0.92;
+    const wy = H * 0.15;
+    const windowGlow = ctx.createRadialGradient(wx, wy, 4, wx, wy, 40);
+    windowGlow.addColorStop(0, 'rgba(232,213,255,0.3)');
+    windowGlow.addColorStop(1, 'rgba(232,213,255,0)');
+    ctx.fillStyle = windowGlow;
     ctx.beginPath();
-    ctx.moveTo(W * 0.72, H);
-    // Hill curve
-    ctx.bezierCurveTo(W * 0.72, H * 0.75, W * 0.78, H * 0.55, W * 0.84, H * 0.35);
-    ctx.bezierCurveTo(W * 0.87, H * 0.28, W * 0.82, H * 0.22, W * 0.84, H * 0.18);
-    // Spiral (simplified)
-    ctx.bezierCurveTo(W * 0.86, H * 0.14, W * 0.90, H * 0.16, W * 0.89, H * 0.21);
-    ctx.bezierCurveTo(W * 0.88, H * 0.28, W * 0.92, H * 0.30, W * 0.94, H * 0.25);
-    ctx.lineTo(W, H * 0.3);
-    ctx.lineTo(W, H);
+    ctx.arc(wx, wy, 40, 0, Math.PI * 2);
+    ctx.fill();
+    // Window shape
+    ctx.fillStyle = 'rgba(232,213,255,0.2)';
+    ctx.beginPath();
+    ctx.roundRect(wx - 8, wy - 16, 16, 24, [8, 8, 0, 0]);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawSpiralHill(hillColor) {
+    ctx.save();
+    ctx.fillStyle = hillColor || '#060618';
+    ctx.beginPath();
+    ctx.moveTo(W * 0.70, H);
+    ctx.bezierCurveTo(W * 0.72, H * 0.72, W * 0.76, H * 0.52, W * 0.83, H * 0.33);
+    ctx.bezierCurveTo(W * 0.86, H * 0.26, W * 0.81, H * 0.19, W * 0.83, H * 0.155);
+    // Spiral curl
+    ctx.bezierCurveTo(W * 0.855, H * 0.12, W * 0.895, H * 0.14, W * 0.885, H * 0.19);
+    ctx.bezierCurveTo(W * 0.875, H * 0.26, W * 0.915, H * 0.275, W * 0.935, H * 0.22);
+    ctx.lineTo(W * 1.02, H * 0.28);
+    ctx.lineTo(W * 1.02, H);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
   }
 
+  /* ---- Stars ---- */
   function drawStars() {
     stars.forEach(s => {
-      const alpha = 0.4 + Math.sin(s.twinkle) * 0.4;
+      const alpha = 0.35 + Math.sin(s.twinkle) * 0.45;
       ctx.save();
       ctx.globalAlpha = alpha;
-      ctx.fillStyle = '#e8d5ff';
+      ctx.fillStyle = s.color;
       ctx.beginPath();
       ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2);
       ctx.fill();
@@ -227,107 +364,171 @@ const PotionEngine = (() => {
     });
   }
 
-  function drawMoon() {
-    const mx = W * 0.82;
-    const my = H * 0.12;
-    const mr = 36;
+  /* ---- Will-o-wisps ---- */
+  function drawWisps() {
+    const room = ROOMS[currentRoom] || ROOMS[0];
+    wisps.forEach((w, i) => {
+      const wx = (w.x + Math.sin(w.phase) * 0.05) * W;
+      const wy = (w.y + Math.cos(w.phase * 0.7) * 0.04) * H;
+      const alpha = 0.12 + Math.sin(w.phase * 1.3) * 0.08;
+      const wispGrad = ctx.createRadialGradient(wx, wy, 0, wx, wy, w.r * 2.5);
+      wispGrad.addColorStop(0, room.accent + 'cc');
+      wispGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = wispGrad;
+      ctx.beginPath();
+      ctx.arc(wx, wy, w.r * 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+  }
 
-    // Glow
-    const glow = ctx.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 2.5);
-    glow.addColorStop(0, 'rgba(232,213,255,0.25)');
-    glow.addColorStop(1, 'rgba(232,213,255,0)');
-    ctx.fillStyle = glow;
+  /* ---- Moon ---- */
+  function drawMoon() {
+    const mx = W * 0.80;
+    const my = H * 0.11;
+    const mr = 40;
+
+    // Outer atmospheric glow
+    const outerGlow = ctx.createRadialGradient(mx, my, mr * 0.6, mx, my, mr * 3.5);
+    outerGlow.addColorStop(0, 'rgba(232,213,255,0.18)');
+    outerGlow.addColorStop(1, 'rgba(232,213,255,0)');
+    ctx.fillStyle = outerGlow;
     ctx.beginPath();
-    ctx.arc(mx, my, mr * 2.5, 0, Math.PI * 2);
+    ctx.arc(mx, my, mr * 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Inner glow halo
+    const innerGlow = ctx.createRadialGradient(mx, my, mr * 0.8, mx, my, mr * 1.8);
+    innerGlow.addColorStop(0, 'rgba(255,248,220,0.22)');
+    innerGlow.addColorStop(1, 'rgba(232,213,255,0)');
+    ctx.fillStyle = innerGlow;
+    ctx.beginPath();
+    ctx.arc(mx, my, mr * 1.8, 0, Math.PI * 2);
     ctx.fill();
 
     // Moon body
-    const moonGrad = ctx.createRadialGradient(mx - 10, my - 10, 5, mx, my, mr);
-    moonGrad.addColorStop(0, '#fff8dc');
-    moonGrad.addColorStop(0.6, '#e8d5ff');
-    moonGrad.addColorStop(1, '#b89fd4');
+    const moonGrad = ctx.createRadialGradient(mx - 12, my - 12, 4, mx, my, mr);
+    moonGrad.addColorStop(0, '#fffce8');
+    moonGrad.addColorStop(0.45, '#f0e8ff');
+    moonGrad.addColorStop(0.75, '#dcc8f0');
+    moonGrad.addColorStop(1, '#a888c8');
     ctx.fillStyle = moonGrad;
     ctx.beginPath();
     ctx.arc(mx, my, mr, 0, Math.PI * 2);
     ctx.fill();
 
-    // Crater
-    ctx.fillStyle = 'rgba(160,130,200,0.3)';
+    // Craters
+    ctx.fillStyle = 'rgba(148,120,190,0.28)';
     ctx.beginPath();
-    ctx.arc(mx + 10, my + 8, 7, 0, Math.PI * 2);
+    ctx.arc(mx + 12, my + 10, 8, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(mx - 8, my - 5, 4, 0, Math.PI * 2);
+    ctx.arc(mx - 10, my - 4, 5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(mx + 2, my + 22, 4, 0, Math.PI * 2);
     ctx.fill();
   }
 
+  /* ---- Cauldron ---- */
   function drawCauldron() {
     const cx = cauldron.x + cauldron.w / 2;
     const cy = cauldron.y;
     const cw = cauldron.w;
     const ch = cauldron.h;
+    const progress = cauldron.ingredientCount / cauldron.maxIngredients;
 
-    // Cauldron glow
+    // Cauldron under-glow
     if (cauldron.glowIntensity > 0) {
-      const glow = ctx.createRadialGradient(cx, cy + ch * 0.3, 10, cx, cy + ch * 0.3, cw * 0.7);
-      glow.addColorStop(0, `rgba(57,255,20,${cauldron.glowIntensity * 0.4})`);
+      const glow = ctx.createRadialGradient(cx, cy + ch * 0.6, 10, cx, cy + ch * 0.5, cw * 0.85);
+      glow.addColorStop(0, `rgba(57,255,20,${cauldron.glowIntensity * 0.35})`);
+      glow.addColorStop(0.5, `rgba(57,200,20,${cauldron.glowIntensity * 0.15})`);
       glow.addColorStop(1, 'rgba(57,255,20,0)');
       ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.arc(cx, cy + ch * 0.3, cw * 0.7, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy + ch * 0.7, cw * 0.85, ch * 0.4, 0, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    // Cauldron legs
-    ctx.fillStyle = '#2a2a3e';
-    ctx.save();
-    ctx.translate(cx - cw * 0.25, cy + ch * 0.88);
-    ctx.rotate(-0.2);
-    ctx.fillRect(-5, 0, 10, 22);
-    ctx.restore();
-    ctx.save();
-    ctx.translate(cx + cw * 0.25, cy + ch * 0.88);
-    ctx.rotate(0.2);
-    ctx.fillRect(-5, 0, 10, 22);
-    ctx.restore();
-    ctx.save();
-    ctx.translate(cx, cy + ch * 0.88);
-    ctx.fillRect(-5, 0, 10, 20);
-    ctx.restore();
+    // Steam wisps (above cauldron)
+    if (!cauldron.erupting) {
+      drawSteam(cx, cy, cw, ch, progress);
+    }
 
-    // Cauldron body
-    ctx.fillStyle = '#1a1a2e';
-    ctx.strokeStyle = '#3a3a5e';
+    // Tripod legs
+    ctx.fillStyle = '#1e1e38';
+    ctx.strokeStyle = '#2e2e50';
+    ctx.lineWidth = 2;
+    [[-0.28, -0.12], [0, 0], [0.28, -0.12]].forEach(([ox, rx]) => {
+      ctx.save();
+      ctx.translate(cx + cw * ox, cy + ch * 0.88);
+      ctx.rotate(rx);
+      ctx.fillRect(-4, 0, 8, 24);
+      // Foot
+      ctx.beginPath();
+      ctx.ellipse(0, 24, 7, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // Cauldron body shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + ch * 0.98, cw * 0.42, ch * 0.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Outer body shell
+    const bodyGrad = ctx.createLinearGradient(cx - cw * 0.5, 0, cx + cw * 0.5, 0);
+    bodyGrad.addColorStop(0, '#16162e');
+    bodyGrad.addColorStop(0.35, '#242448');
+    bodyGrad.addColorStop(0.65, '#1e1e3c');
+    bodyGrad.addColorStop(1, '#10102a');
+    ctx.fillStyle = bodyGrad;
+    ctx.strokeStyle = '#3a3a60';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.ellipse(cx, cy + ch * 0.85, cw * 0.42, ch * 0.18, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(cx - cw * 0.42, cy + ch * 0.85);
-    ctx.bezierCurveTo(cx - cw * 0.5, cy + ch * 0.4, cx - cw * 0.45, cy + ch * 0.15, cx, cy + ch * 0.1);
-    ctx.bezierCurveTo(cx + cw * 0.45, cy + ch * 0.15, cx + cw * 0.5, cy + ch * 0.4, cx + cw * 0.42, cy + ch * 0.85);
+    ctx.moveTo(cx - cw * 0.44, cy + ch * 0.84);
+    ctx.bezierCurveTo(cx - cw * 0.52, cy + ch * 0.4, cx - cw * 0.46, cy + ch * 0.12, cx, cy + ch * 0.07);
+    ctx.bezierCurveTo(cx + cw * 0.46, cy + ch * 0.12, cx + cw * 0.52, cy + ch * 0.4, cx + cw * 0.44, cy + ch * 0.84);
     ctx.closePath();
-    ctx.fillStyle = '#2a2a4a';
     ctx.fill();
     ctx.stroke();
 
-    // Cauldron rim
-    ctx.fillStyle = '#3a3a5e';
+    // Inner highlight (3D feel)
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
     ctx.beginPath();
-    ctx.ellipse(cx, cy + ch * 0.12, cw * 0.46, ch * 0.11, 0, 0, Math.PI * 2);
+    ctx.moveTo(cx - cw * 0.25, cy + ch * 0.72);
+    ctx.bezierCurveTo(cx - cw * 0.32, cy + ch * 0.4, cx - cw * 0.28, cy + ch * 0.15, cx - cw * 0.1, cy + ch * 0.1);
+    ctx.bezierCurveTo(cx - cw * 0.04, cy + ch * 0.08, cx - cw * 0.02, cy + ch * 0.08, cx - cw * 0.02, cy + ch * 0.25);
+    ctx.bezierCurveTo(cx - cw * 0.02, cy + ch * 0.5, cx - cw * 0.15, cy + ch * 0.68, cx - cw * 0.25, cy + ch * 0.72);
     ctx.fill();
 
-    // Brew liquid
-    const liquidGrad = ctx.createRadialGradient(cx, cy + ch * 0.18, 5, cx, cy + ch * 0.18, cw * 0.4);
-    const progress = cauldron.ingredientCount / cauldron.maxIngredients;
-    const r = Math.floor(20 + progress * 10);
-    const g = Math.floor(80 + progress * 80);
-    const b = Math.floor(30 + progress * 20);
-    liquidGrad.addColorStop(0, `rgba(${r * 2},${g * 2},${b * 2},0.9)`);
-    liquidGrad.addColorStop(1, `rgba(${r},${g},${b},0.7)`);
+    // Rim ellipse
+    const rimGrad = ctx.createLinearGradient(cx - cw * 0.5, cy, cx + cw * 0.5, cy);
+    rimGrad.addColorStop(0, '#2a2a4e');
+    rimGrad.addColorStop(0.5, '#4a4a7e');
+    rimGrad.addColorStop(1, '#2a2a4e');
+    ctx.fillStyle = rimGrad;
+    ctx.strokeStyle = '#5a5a8e';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + ch * 0.09, cw * 0.48, ch * 0.12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Liquid surface
+    const r = Math.floor(18 + progress * 14);
+    const g = Math.floor(88 + progress * 100);
+    const b = Math.floor(28 + progress * 20);
+    const liquidGrad = ctx.createRadialGradient(cx - cw * 0.08, cy + ch * 0.13, 4, cx, cy + ch * 0.16, cw * 0.42);
+    liquidGrad.addColorStop(0, `rgba(${r * 2 + 20},${g * 2},${b * 2},0.95)`);
+    liquidGrad.addColorStop(0.6, `rgba(${r * 1.5},${g},${b},0.85)`);
+    liquidGrad.addColorStop(1, `rgba(${r},${Math.floor(g * 0.7)},${b},0.7)`);
     ctx.fillStyle = liquidGrad;
     ctx.beginPath();
-    ctx.ellipse(cx, cy + ch * 0.18, cw * 0.40, ch * 0.08, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy + ch * 0.16, cw * 0.42, ch * 0.09, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Bubbles
@@ -335,219 +536,438 @@ const PotionEngine = (() => {
       drawBubbles(cx, cy, cw, ch);
     }
 
-    // Eruption
     if (cauldron.erupting) {
       drawEruption(cx, cy, cw, ch);
     }
 
-    // Handle
-    ctx.strokeStyle = '#2a2a4e';
-    ctx.lineWidth = 6;
+    // Handle arc
+    ctx.strokeStyle = '#2a2a50';
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.arc(cx, cy + ch * 0.12, cw * 0.28, Math.PI, 0);
+    ctx.arc(cx, cy + ch * 0.09, cw * 0.3, Math.PI, 0);
     ctx.stroke();
+    // Handle highlight
+    ctx.strokeStyle = 'rgba(80,80,120,0.5)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy + ch * 0.07, cw * 0.3, Math.PI + 0.2, -0.2);
+    ctx.stroke();
+  }
+
+  function drawSteam(cx, cy, cw, ch, progress) {
+    if (progress < 0.01) return;
+    const sAlpha = Math.min(0.22, progress * 0.3);
+    const t = cauldron.steamPhase;
+
+    for (let i = 0; i < 3; i++) {
+      const sx = cx + (i - 1) * cw * 0.18 + Math.sin(t + i * 2.1) * cw * 0.06;
+      const baseY = cy + ch * 0.04;
+      const height = 50 + Math.sin(t * 0.5 + i) * 15;
+      const drift = Math.sin(t * 0.8 + i * 1.5) * 12;
+
+      const steamGrad = ctx.createLinearGradient(sx, baseY, sx + drift, baseY - height);
+      steamGrad.addColorStop(0, `rgba(180,255,180,${sAlpha})`);
+      steamGrad.addColorStop(0.5, `rgba(200,255,200,${sAlpha * 0.5})`);
+      steamGrad.addColorStop(1, 'rgba(200,255,200,0)');
+
+      ctx.strokeStyle = steamGrad;
+      ctx.lineWidth = 10 - i * 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(sx, baseY);
+      ctx.bezierCurveTo(
+        sx + 14, baseY - height * 0.3,
+        sx - 14 + drift, baseY - height * 0.65,
+        sx + drift, baseY - height
+      );
+      ctx.stroke();
+    }
   }
 
   function drawBubbles(cx, cy, cw, ch) {
     const bTime = cauldron.bubblePhase;
-    for (let i = 0; i < 3; i++) {
-      const bx = cx + Math.sin(bTime * 1.2 + i * 2.1) * cw * 0.2;
-      const by = cy + ch * 0.18 - Math.abs(Math.sin(bTime + i * 1.5)) * ch * 0.25;
-      const br = 4 + Math.sin(bTime * 2 + i) * 2;
-      const alpha = 0.5 + Math.sin(bTime + i) * 0.3;
+    for (let i = 0; i < 4; i++) {
+      const bx = cx + Math.sin(bTime * 1.1 + i * 1.9) * cw * 0.22;
+      const by = cy + ch * 0.16 - Math.abs(Math.sin(bTime + i * 1.3)) * ch * 0.28;
+      const br = 3 + Math.sin(bTime * 1.8 + i) * 2;
+      const alpha = 0.45 + Math.sin(bTime * 0.9 + i) * 0.35;
       ctx.save();
       ctx.globalAlpha = alpha;
-      ctx.strokeStyle = '#39ff14';
+      ctx.strokeStyle = '#50ff30';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(bx, by, br, 0, Math.PI * 2);
       ctx.stroke();
+      // Bubble shine
+      ctx.globalAlpha = alpha * 0.5;
+      ctx.fillStyle = 'rgba(200,255,150,0.5)';
+      ctx.beginPath();
+      ctx.arc(bx - br * 0.3, by - br * 0.3, br * 0.35, 0, Math.PI * 2);
+      ctx.fill();
       ctx.restore();
     }
   }
 
   function drawEruption(cx, cy, cw, ch) {
-    const t = cauldron.eruptTimer / 80;
-    const height = t < 0.5 ? t * 2 : 2 - t * 2;
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      const dist = (cw * 0.3) * height;
+    const t = cauldron.eruptTimer / 90;
+    const height = t < 0.45 ? t * 2.2 : (1 - t) * 2;
+    for (let i = 0; i < 10; i++) {
+      const angle = (i / 10) * Math.PI * 2;
+      const dist = cw * 0.28 * height;
       const px = cx + Math.cos(angle) * dist;
-      const py = cy + ch * 0.1 - height * ch * 0.8;
-      const alpha = 1 - t;
+      const py = cy + ch * 0.08 - height * ch * 0.9;
+      const alpha = Math.max(0, 1 - t * 1.2);
       ctx.save();
       ctx.globalAlpha = alpha;
-      ctx.fillStyle = cauldron.eruptTimer < 40 ? '#39ff14' : '#7cfc00';
+      ctx.fillStyle = cauldron.eruptTimer < 45 ? '#39ff14' : '#b0ff50';
       ctx.beginPath();
-      ctx.arc(px, py, 6, 0, Math.PI * 2);
+      ctx.arc(px, py, 7 + height * 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
   }
 
+  /* ---- Jack Skellington ---- */
   function drawJack() {
     const x = jack.x;
     const y = jack.y + jack.bobY;
-    const scale = jack.state === 'celebrate' ? 1.12 : 1;
+    const celebrate = jack.state === 'celebrate';
+    const scale = celebrate ? 1.1 : 1;
 
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale, scale);
 
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    // Ground shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
     ctx.beginPath();
-    ctx.ellipse(0, 75, 28, 8, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 88, 26, 7, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Body (suit)
-    ctx.fillStyle = '#1a1a2e';
-    ctx.strokeStyle = '#3a3a5e';
+    /* ====  LEGS (drawn behind body) ==== */
+    ctx.strokeStyle = '#181830';
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-9, 72); ctx.lineTo(-13, 98);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(9, 72); ctx.lineTo(13, 98);
+    ctx.stroke();
+
+    // Shoes — elongated, slightly pointed
+    ctx.fillStyle = '#0a0a1c';
+    // Left shoe
+    ctx.beginPath();
+    ctx.moveTo(-13, 96);
+    ctx.bezierCurveTo(-28, 93, -34, 102, -20, 104);
+    ctx.bezierCurveTo(-10, 105, -8, 99, -13, 96);
+    ctx.fill();
+    // Right shoe
+    ctx.beginPath();
+    ctx.moveTo(13, 96);
+    ctx.bezierCurveTo(28, 93, 34, 102, 20, 104);
+    ctx.bezierCurveTo(10, 105, 8, 99, 13, 96);
+    ctx.fill();
+
+    /* ==== BODY / SUIT ==== */
+    const suitGrad = ctx.createLinearGradient(-22, 15, 22, 15);
+    suitGrad.addColorStop(0,   '#111128');
+    suitGrad.addColorStop(0.4, '#1c1c3c');
+    suitGrad.addColorStop(0.6, '#1c1c3c');
+    suitGrad.addColorStop(1,   '#111128');
+    ctx.fillStyle = suitGrad;
+    ctx.strokeStyle = '#2a2a4e';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.roundRect(-18, 20, 36, 55, 4);
+    ctx.moveTo(-10, 12);    // left collar start
+    ctx.lineTo(-22, 18);    // left shoulder
+    ctx.lineTo(-22, 72);    // left hip
+    ctx.lineTo(22, 72);     // right hip
+    ctx.lineTo(22, 18);     // right shoulder
+    ctx.lineTo(10, 12);     // right collar start
+    ctx.lineTo(5, 20);      // right lapel inner
+    ctx.lineTo(2, 16);      // chest center-right
+    ctx.lineTo(-2, 16);     // chest center-left
+    ctx.lineTo(-5, 20);     // left lapel inner
+    ctx.closePath();
     ctx.fill();
     ctx.stroke();
 
+    // White shirt front triangle
+    ctx.fillStyle = 'rgba(240,235,255,0.12)';
+    ctx.beginPath();
+    ctx.moveTo(0, 16);
+    ctx.lineTo(-4, 30);
+    ctx.lineTo(4, 30);
+    ctx.closePath();
+    ctx.fill();
+
     // Pinstripes
-    ctx.strokeStyle = '#2e2e4e';
+    ctx.strokeStyle = 'rgba(70,70,110,0.4)';
     ctx.lineWidth = 1;
-    for (let sx = -14; sx <= 14; sx += 7) {
+    for (let sx = -17; sx <= 17; sx += 5.5) {
       ctx.beginPath();
-      ctx.moveTo(sx, 22);
-      ctx.lineTo(sx, 73);
+      ctx.moveTo(sx, 18);
+      ctx.lineTo(sx, 70);
       ctx.stroke();
     }
 
-    // Arms
-    ctx.strokeStyle = '#1a1a2e';
-    ctx.lineWidth = 8;
-    ctx.lineCap = 'round';
-    // Left arm
-    ctx.save();
-    ctx.translate(-18, 30);
-    ctx.rotate(-0.4 + jack.armAngle);
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(-25, 25);
-    ctx.stroke();
-    // Left hand
-    ctx.fillStyle = '#e8d5ff';
-    ctx.beginPath();
-    ctx.arc(-25, 25, 7, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-    // Right arm
-    ctx.save();
-    ctx.translate(18, 30);
-    ctx.rotate(0.4 - jack.armAngle);
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(25, 25);
-    ctx.stroke();
-    ctx.fillStyle = '#e8d5ff';
-    ctx.beginPath();
-    ctx.arc(25, 25, 7, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    // Legs
-    ctx.strokeStyle = '#1a1a2e';
-    ctx.lineWidth = 7;
-    [-8, 8].forEach((lx, i) => {
+    // Suit buttons
+    ctx.fillStyle = '#3a3a6a';
+    [35, 47, 59].forEach(by => {
       ctx.beginPath();
-      ctx.moveTo(lx, 73);
-      ctx.lineTo(lx + (i === 0 ? -4 : 4), 100);
-      ctx.stroke();
-      // Shoes
-      ctx.fillStyle = '#0d0d1e';
-      ctx.beginPath();
-      ctx.ellipse(lx + (i === 0 ? -8 : 8), 102, 12, 5, i === 0 ? -0.2 : 0.2, 0, Math.PI * 2);
+      ctx.arc(0, by, 2, 0, Math.PI * 2);
       ctx.fill();
     });
 
-    // Neck
-    ctx.fillStyle = '#e8d5ff';
+    /* ==== ARMS ==== */
+    const armA = celebrate ? -0.75 : jack.armAngle;
+    ctx.lineCap = 'round';
+
+    // Left arm
+    ctx.save();
+    ctx.translate(-22, 26);
+    ctx.rotate(-0.45 + armA);
+    ctx.strokeStyle = '#181830';
+    ctx.lineWidth = 7;
     ctx.beginPath();
-    ctx.roundRect(-5, 12, 10, 12, 2);
+    ctx.moveTo(0, 0); ctx.lineTo(-32, 36);
+    ctx.stroke();
+    // Left hand base
+    ctx.fillStyle = '#d0c0e8';
+    ctx.beginPath();
+    ctx.arc(-32, 36, 5.5, 0, Math.PI * 2);
+    ctx.fill();
+    // Left fingers
+    ctx.strokeStyle = '#d0c0e8';
+    ctx.lineWidth = 2.5;
+    [[-28, 31], [-34, 30], [-37, 34], [-35, 40]].forEach(([fx, fy]) => {
+      ctx.beginPath();
+      ctx.moveTo(-32, 36); ctx.lineTo(fx, fy);
+      ctx.stroke();
+    });
+    ctx.restore();
+
+    // Right arm
+    ctx.save();
+    ctx.translate(22, 26);
+    ctx.rotate(0.45 - armA);
+    ctx.strokeStyle = '#181830';
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(32, 36);
+    ctx.stroke();
+    ctx.fillStyle = '#d0c0e8';
+    ctx.beginPath();
+    ctx.arc(32, 36, 5.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#d0c0e8';
+    ctx.lineWidth = 2.5;
+    [[28, 31], [34, 30], [37, 34], [35, 40]].forEach(([fx, fy]) => {
+      ctx.beginPath();
+      ctx.moveTo(32, 36); ctx.lineTo(fx, fy);
+      ctx.stroke();
+    });
+    ctx.restore();
+
+    /* ==== BAT-WING BOW TIE ==== */
+    const btColor = '#7a1818';
+    const btHighlight = '#c02828';
+    // Left wing
+    ctx.fillStyle = btColor;
+    ctx.beginPath();
+    ctx.moveTo(0, 16);
+    ctx.bezierCurveTo(-7, 11, -14, 9, -13, 17);
+    ctx.bezierCurveTo(-12, 22, -4, 21, 0, 16);
+    ctx.fill();
+    // Left wing top notch (bat ear)
+    ctx.fillStyle = btColor;
+    ctx.beginPath();
+    ctx.moveTo(-5, 11);
+    ctx.lineTo(-9, 7);
+    ctx.lineTo(-12, 11);
+    ctx.fill();
+    // Right wing
+    ctx.fillStyle = btColor;
+    ctx.beginPath();
+    ctx.moveTo(0, 16);
+    ctx.bezierCurveTo(7, 11, 14, 9, 13, 17);
+    ctx.bezierCurveTo(12, 22, 4, 21, 0, 16);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(5, 11);
+    ctx.lineTo(9, 7);
+    ctx.lineTo(12, 11);
+    ctx.fill();
+    // Center knot
+    ctx.fillStyle = btHighlight;
+    ctx.beginPath();
+    ctx.ellipse(0, 16, 3.5, 3, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Head
-    ctx.fillStyle = '#e8d5ff';
-    ctx.strokeStyle = '#b89fd4';
-    ctx.lineWidth = 2;
+    /* ==== NECK ==== */
+    ctx.fillStyle = '#d0c0e8';
     ctx.beginPath();
-    ctx.ellipse(0, 0, 22, 26, 0, 0, Math.PI * 2);
+    ctx.roundRect(-4, 8, 8, 7, 2);
+    ctx.fill();
+
+    /* ==== HEAD ==== */
+    const headGrad = ctx.createRadialGradient(-7, -9, 2, 0, -2, 24);
+    headGrad.addColorStop(0,   '#f0e4ff');
+    headGrad.addColorStop(0.5, '#dccef0');
+    headGrad.addColorStop(0.85,'#c4aade');
+    headGrad.addColorStop(1,   '#a888c0');
+    ctx.fillStyle = headGrad;
+    ctx.strokeStyle = '#9070b0';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(0, -2, 20, 24, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    // Jack's iconic smile + eyes
-    // Eyes (hollow triangles)
-    ctx.fillStyle = '#0d0d2b';
+    /* ==== EYES — classic hollow triangular sockets ==== */
+    ctx.fillStyle = '#0a0a1e';
     ctx.save();
     ctx.scale(1, jack.eyeScale);
-    // Left eye
+    // Left eye socket
     ctx.beginPath();
-    ctx.moveTo(-10, -8);
-    ctx.lineTo(-6, -2);
-    ctx.lineTo(-14, -2);
+    ctx.moveTo(-12, -13);
+    ctx.lineTo(-17, -4);
+    ctx.lineTo(-7, -4);
     ctx.closePath();
     ctx.fill();
-    // Right eye
+    // Right eye socket
     ctx.beginPath();
-    ctx.moveTo(10, -8);
-    ctx.lineTo(14, -2);
-    ctx.lineTo(6, -2);
+    ctx.moveTo(12, -13);
+    ctx.lineTo(7, -4);
+    ctx.lineTo(17, -4);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
 
-    // Smile (stitched)
-    ctx.strokeStyle = '#0d0d2b';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
+    /* ==== NOSE — small triangular skull nose hole ==== */
+    ctx.fillStyle = '#0a0a1e';
     ctx.beginPath();
-    ctx.arc(0, 8, 12, 0.2, Math.PI - 0.2);
+    ctx.moveTo(0, 2);
+    ctx.lineTo(-2.5, 7);
+    ctx.lineTo(2.5, 7);
+    ctx.closePath();
+    ctx.fill();
+
+    /* ==== STITCHED SMILE ==== */
+    ctx.strokeStyle = '#0a0a1e';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'butt';
+    // Wide grin arc
+    ctx.beginPath();
+    ctx.arc(0, 5, 15, 0.2, Math.PI - 0.2);
     ctx.stroke();
-    // Stitch marks on smile
-    for (let sx = -8; sx <= 8; sx += 4) {
+    // Stitches — small crossing lines along the arc
+    ctx.lineWidth = 1.5;
+    for (let angle = 0.35; angle < Math.PI - 0.35; angle += 0.38) {
+      const rx = 15 * Math.cos(Math.PI - angle);
+      const ry = 5 + 15 * Math.sin(Math.PI - angle);
+      const nx = Math.cos(Math.PI - angle);
+      const ny = Math.sin(Math.PI - angle);
       ctx.beginPath();
-      ctx.moveTo(sx, 8 + Math.sqrt(144 - sx * sx) * 0.6);
-      ctx.lineTo(sx, 8 + Math.sqrt(144 - sx * sx) * 0.6 + 4);
+      ctx.moveTo(rx - nx * 3.5, ry - ny * 3.5);
+      ctx.lineTo(rx + nx * 3.5, ry + ny * 3.5);
       ctx.stroke();
     }
 
-    // Top hat
-    ctx.fillStyle = '#0d0d1e';
-    ctx.strokeStyle = '#2a2a3e';
+    /* ==== TOP HAT — tall iconic stovepipe ==== */
+    // Wide brim
+    ctx.fillStyle = '#080818';
+    ctx.strokeStyle = '#1c1c38';
     ctx.lineWidth = 2;
-    // Brim
     ctx.beginPath();
-    ctx.ellipse(0, -24, 26, 7, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -24, 28, 7.5, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
-    // Hat body
+
+    // Hat body (tall!)
+    const hatGrad = ctx.createLinearGradient(-17, -90, 17, -90);
+    hatGrad.addColorStop(0,   '#080818');
+    hatGrad.addColorStop(0.4, '#0e0e24');
+    hatGrad.addColorStop(1,   '#080818');
+    ctx.fillStyle = hatGrad;
     ctx.beginPath();
-    ctx.roundRect(-16, -58, 32, 36, 2);
+    ctx.roundRect(-16, -90, 32, 68, 2);
     ctx.fill();
-    ctx.stroke();
-    // Hat band
-    ctx.fillStyle = '#1a0a3e';
+    ctx.strokeStyle = '#1c1c38';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-16, -90, 32, 68);
+
+    // Hat band (deep purple)
+    ctx.fillStyle = '#280858';
     ctx.beginPath();
-    ctx.roundRect(-16, -30, 32, 7, 1);
+    ctx.rect(-16, -30, 32, 8);
+    ctx.fill();
+    // Band highlight
+    ctx.fillStyle = 'rgba(120,80,220,0.25)';
+    ctx.beginPath();
+    ctx.rect(-16, -30, 32, 2);
     ctx.fill();
 
-    // Celebrate expression
-    if (jack.state === 'celebrate') {
-      ctx.fillStyle = 'rgba(255,215,0,0.2)';
+    // Bat buckle on hat band
+    ctx.save();
+    ctx.translate(0, -26);
+    ctx.scale(0.6, 0.6);
+    // Buckle frame
+    ctx.strokeStyle = '#c8a020';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-10, -6, 20, 12);
+    // Bat shape inside buckle
+    ctx.fillStyle = '#c8a020';
+    // Body
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 4, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Wings
+    ctx.beginPath();
+    ctx.moveTo(-4, 0);
+    ctx.bezierCurveTo(-8, -5, -12, 0, -8, 3);
+    ctx.bezierCurveTo(-5, 4, -2, 1, -4, 0);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(4, 0);
+    ctx.bezierCurveTo(8, -5, 12, 0, 8, 3);
+    ctx.bezierCurveTo(5, 4, 2, 1, 4, 0);
+    ctx.fill();
+    ctx.restore();
+
+    // Hat top cap ellipse
+    ctx.fillStyle = '#0a0a1e';
+    ctx.beginPath();
+    ctx.ellipse(0, -89, 14.5, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Hat highlight strip (sheen)
+    ctx.fillStyle = 'rgba(255,255,255,0.035)';
+    ctx.beginPath();
+    ctx.roundRect(-3, -88, 8, 64, 1);
+    ctx.fill();
+
+    /* ==== CELEBRATE GLOW ==== */
+    if (celebrate) {
+      ctx.globalAlpha = 0.22;
+      const celebGlow = ctx.createRadialGradient(0, 0, 5, 0, 0, 45);
+      celebGlow.addColorStop(0, '#ffd700');
+      celebGlow.addColorStop(1, 'rgba(255,215,0,0)');
+      ctx.fillStyle = celebGlow;
       ctx.beginPath();
-      ctx.arc(0, 0, 30, 0, Math.PI * 2);
+      ctx.arc(0, 0, 45, 0, Math.PI * 2);
       ctx.fill();
+      ctx.globalAlpha = 1;
     }
 
     ctx.restore();
   }
 
+  /* ---- Zero (ghost dog) ---- */
   function drawZero() {
     const x = zero.x + zero.bobX;
     const y = zero.y + Math.sin(zero.bobAngle) * 10;
@@ -556,66 +976,129 @@ const PotionEngine = (() => {
     ctx.save();
     ctx.translate(x, y);
 
-    // Ghost body glow
-    const glow = ctx.createRadialGradient(0, 0, r * 0.5, 0, 0, r * 2);
-    glow.addColorStop(0, `rgba(232,213,255,${zero.noseGlow * 0.3})`);
-    glow.addColorStop(1, 'rgba(232,213,255,0)');
-    ctx.fillStyle = glow;
+    // Outer ethereal glow
+    const outerGlow = ctx.createRadialGradient(0, 0, r * 0.6, 0, 0, r * 3);
+    outerGlow.addColorStop(0, `rgba(220,210,255,${zero.noseGlow * 0.18})`);
+    outerGlow.addColorStop(1, 'rgba(220,210,255,0)');
+    ctx.fillStyle = outerGlow;
     ctx.beginPath();
-    ctx.arc(0, 0, r * 2, 0, Math.PI * 2);
+    ctx.arc(0, 0, r * 3, 0, Math.PI * 2);
     ctx.fill();
 
-    // Ghost body (teardrop)
-    ctx.fillStyle = zero.state === 'sad' ? '#c8c0d8' : '#e8e8ff';
-    ctx.globalAlpha = 0.85;
+    // Ghost body — teardrop with floppy-ear hint on right
+    const bodyColor = zero.state === 'sad' ? '#b0a8c8' : '#e2e0f8';
+    ctx.globalAlpha = 0.88;
+    ctx.fillStyle = bodyColor;
     ctx.beginPath();
-    ctx.arc(0, -r * 0.3, r, Math.PI, 0);
-    ctx.bezierCurveTo(r, r * 0.7, r * 0.6, r * 1.2, 0, r * 1.4);
-    ctx.bezierCurveTo(-r * 0.6, r * 1.2, -r, r * 0.7, -r, r * 0.3);
+    // Main teardrop body
+    ctx.arc(0, -r * 0.3, r * 1.02, Math.PI, 0);
+    ctx.bezierCurveTo(r, r * 0.75, r * 0.65, r * 1.3, 0, r * 1.55);
+    ctx.bezierCurveTo(-r * 0.65, r * 1.3, -r, r * 0.75, -r, r * 0.32);
     ctx.closePath();
+    ctx.fill();
+
+    // Floppy ear — right side, drooping down
+    ctx.beginPath();
+    ctx.ellipse(r * 0.9, -r * 0.65, r * 0.4, r * 0.6, 0.5 + zero.earWag, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Left ear hint
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.85, -r * 0.7, r * 0.32, r * 0.45, -0.4 - zero.earWag * 0.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // Eyes
+    // Body inner sheen
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.2, -r * 0.5, r * 0.3, r * 0.4, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eyes — big round dots
     ctx.fillStyle = '#2a1a4e';
     ctx.beginPath();
-    ctx.arc(-r * 0.35, -r * 0.1, r * 0.18, 0, Math.PI * 2);
+    ctx.arc(-r * 0.38, -r * 0.2, r * 0.2, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(r * 0.35, -r * 0.1, r * 0.18, 0, Math.PI * 2);
+    ctx.arc(r * 0.38, -r * 0.2, r * 0.2, 0, Math.PI * 2);
     ctx.fill();
 
-    // Nose (pumpkin-shaped, glowing orange)
-    const noseGrad = ctx.createRadialGradient(0, r * 0.35, 2, 0, r * 0.35, r * 0.45);
-    noseGrad.addColorStop(0, `rgba(255,200,50,${zero.noseGlow})`);
-    noseGrad.addColorStop(0.5, `rgba(255,120,0,${zero.noseGlow * 0.8})`);
-    noseGrad.addColorStop(1, `rgba(200,60,0,0)`);
+    // Eye shine
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.beginPath();
+    ctx.arc(-r * 0.32, -r * 0.26, r * 0.07, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(r * 0.44, -r * 0.26, r * 0.07, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pumpkin nose — glowing orange, floating on a small tag
+    // Collar string
+    ctx.strokeStyle = 'rgba(180,170,210,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, r * 0.1);
+    ctx.lineTo(0, r * 0.52);
+    ctx.stroke();
+
+    // Nose glow aura
+    const noseAura = ctx.createRadialGradient(0, r * 0.6, 2, 0, r * 0.6, r * 0.6);
+    noseAura.addColorStop(0, `rgba(255,140,0,${zero.noseGlow * 0.55})`);
+    noseAura.addColorStop(0.5, `rgba(255,80,0,${zero.noseGlow * 0.2})`);
+    noseAura.addColorStop(1, 'rgba(255,80,0,0)');
+    ctx.fillStyle = noseAura;
+    ctx.beginPath();
+    ctx.arc(0, r * 0.6, r * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Nose pumpkin face
+    const noseGrad = ctx.createRadialGradient(-2, r * 0.53, 1, 0, r * 0.62, r * 0.32);
+    noseGrad.addColorStop(0, `rgba(255,200,40,${zero.noseGlow})`);
+    noseGrad.addColorStop(0.5, `rgba(255,120,0,${zero.noseGlow * 0.9})`);
+    noseGrad.addColorStop(1, `rgba(180,50,0,${zero.noseGlow * 0.5})`);
     ctx.fillStyle = noseGrad;
     ctx.beginPath();
-    ctx.arc(0, r * 0.35, r * 0.28, 0, Math.PI * 2);
+    ctx.arc(0, r * 0.62, r * 0.3, 0, Math.PI * 2);
     ctx.fill();
 
-    // Tail (wavy line behind)
+    // Nose tiny jack-o-lantern face
+    ctx.fillStyle = `rgba(0,0,0,${zero.noseGlow * 0.7})`;
     ctx.save();
-    ctx.rotate(zero.tailAngle);
-    ctx.strokeStyle = 'rgba(232,213,255,0.6)';
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
+    ctx.translate(0, r * 0.62);
+    ctx.scale(r * 0.025, r * 0.025);
+    // Tiny triangle eyes
+    ctx.beginPath(); ctx.moveTo(-4,-2); ctx.lineTo(-1,2); ctx.lineTo(-7,2); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(4,-2); ctx.lineTo(7,2); ctx.lineTo(1,2); ctx.closePath(); ctx.fill();
+    // Tiny jagged mouth
     ctx.beginPath();
-    ctx.moveTo(0, r * 1.4);
-    ctx.bezierCurveTo(r * 0.4, r * 1.8, -r * 0.4, r * 2.1, 0, r * 2.4);
+    ctx.moveTo(-6,5); ctx.lineTo(-3,8); ctx.lineTo(0,5); ctx.lineTo(3,8); ctx.lineTo(6,5);
     ctx.stroke();
     ctx.restore();
 
-    // Happy state: sparkles around
+    // Tail — wavy ribbon
+    ctx.save();
+    ctx.rotate(zero.tailAngle);
+    const tailGrad = ctx.createLinearGradient(0, r * 1.55, 0, r * 2.6);
+    tailGrad.addColorStop(0, 'rgba(220,215,250,0.7)');
+    tailGrad.addColorStop(1, 'rgba(220,215,250,0)');
+    ctx.strokeStyle = tailGrad;
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, r * 1.55);
+    ctx.bezierCurveTo(r * 0.5, r * 1.9, -r * 0.5, r * 2.2, r * 0.2, r * 2.6);
+    ctx.stroke();
+    ctx.restore();
+
+    // Happy state: sparkle ring
     if (zero.state === 'happy') {
       ctx.fillStyle = '#ffd700';
-      for (let i = 0; i < 4; i++) {
-        const a = (i / 4) * Math.PI * 2 + zero.bobAngle;
-        const px = Math.cos(a) * r * 1.7;
-        const py = Math.sin(a) * r * 1.7;
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2 + zero.bobAngle * 1.5;
+        const px = Math.cos(a) * r * 1.9;
+        const py = Math.sin(a) * r * 1.9;
         ctx.beginPath();
-        ctx.arc(px, py, 3, 0, Math.PI * 2);
+        ctx.arc(px, py, 3.5, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -623,17 +1106,19 @@ const PotionEngine = (() => {
     ctx.restore();
   }
 
+  /* ---- Fly Ingredient ---- */
   function drawFlyIngredient() {
     if (!flyIngredient) return;
     ctx.save();
-    ctx.globalAlpha = Math.max(0, flyIngredient.alpha);
-    ctx.font = `${Math.floor(40 * flyIngredient.scale)}px serif`;
+    ctx.globalAlpha = Math.max(0, flyIngredient.scale);
+    ctx.font = `${Math.floor(36 * flyIngredient.scale)}px serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(flyIngredient.emoji, flyIngredient.x, flyIngredient.y);
     ctx.restore();
   }
 
+  /* ---- Particles ---- */
   function drawParticles() {
     particles.forEach(p => {
       ctx.save();
@@ -650,6 +1135,10 @@ const PotionEngine = (() => {
         ctx.font = `${p.size}px serif`;
         ctx.textAlign = 'center';
         ctx.fillText('⭐', p.x, p.y);
+      } else if (p.type === 'ghost') {
+        ctx.font = `${p.size}px serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('👻', p.x, p.y);
       } else if (p.type === 'glow') {
         const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
         grad.addColorStop(0, p.color || 'rgba(255,117,24,0.8)');
@@ -669,73 +1158,66 @@ const PotionEngine = (() => {
   }
 
   /* ---- Public API ---- */
-
   function setMode(m) { mode = m; }
+
+  function setRoom(n) {
+    currentRoom = Math.max(0, Math.min(ROOMS.length - 1, n));
+  }
 
   function jackTalk() {
     jack.state = 'talk';
-    jack.stateTimer = 120;
+    jack.stateTimer = 110;
   }
 
   function jackCelebrate() {
     jack.state = 'celebrate';
-    jack.stateTimer = 180;
-    // Arms up position
+    jack.stateTimer = 200;
     jack.armAngle = 0.8;
   }
 
   function jackHint() {
     jack.state = 'hint';
-    jack.stateTimer = 90;
+    jack.stateTimer = 80;
   }
 
   function zeroHappy() {
     zero.state = 'happy';
-    zero.stateTimer = 100;
+    zero.stateTimer = 110;
   }
 
   function zeroTrick() {
     zero.state = 'happy';
-    zero.stateTimer = 180;
+    zero.stateTimer = 200;
   }
 
   function zeroSad() {
     zero.state = 'sad';
-    zero.stateTimer = 60;
-    // Recover quickly
-    setTimeout(() => { zero.state = 'idle'; }, 1000);
+    zero.stateTimer = 55;
+    setTimeout(() => { zero.state = 'idle'; }, 1100);
   }
 
   function flyIngredientTo(emoji, startX, startY) {
-    flyIngredient = {
-      emoji,
-      x: startX,
-      y: startY,
-      scale: 1,
-      alpha: 1,
-      t: 0
-    };
+    flyIngredient = { emoji, x: startX, y: startY, scale: 1, alpha: 1, t: 0 };
   }
 
   function addIngredient() {
     cauldron.ingredientCount = Math.min(cauldron.maxIngredients, cauldron.ingredientCount + 1);
     PotionAudio.playCauldronBubble();
-    // Spawn bubble particles
     const cx = cauldron.x + cauldron.w / 2;
-    const cy = cauldron.y + cauldron.h * 0.15;
-    for (let i = 0; i < 6; i++) {
+    const cy = cauldron.y + cauldron.h * 0.14;
+    for (let i = 0; i < 7; i++) {
       particles.push({
         type: 'glow',
-        x: cx + (Math.random() - 0.5) * 40,
+        x: cx + (Math.random() - 0.5) * 45,
         y: cy,
-        vx: (Math.random() - 0.5) * 2,
-        vy: -Math.random() * 3 - 1,
-        size: Math.random() * 10 + 5,
-        color: 'rgba(57,255,20,0.5)',
-        life: 30 + Math.random() * 20,
+        vx: (Math.random() - 0.5) * 2.5,
+        vy: -Math.random() * 3.5 - 1,
+        size: Math.random() * 12 + 5,
+        color: 'rgba(57,255,20,0.55)',
+        life: 28 + Math.random() * 22,
         maxLife: 50,
         alpha: 1,
-        gravity: 0
+        gravity: -0.02
       });
     }
   }
@@ -755,24 +1237,24 @@ const PotionEngine = (() => {
   }
 
   function spawnCelebrationParticles(count) {
-    const n = count || 30;
+    const n = count || 35;
     const cx = cauldron.x + cauldron.w / 2;
     const cy = cauldron.y;
-    const types = ['bat', 'pumpkin', 'star', 'glow'];
+    const types = ['bat', 'pumpkin', 'star', 'ghost', 'glow'];
     for (let i = 0; i < n; i++) {
       const type = types[Math.floor(Math.random() * types.length)];
       particles.push({
         type,
-        x: cx + (Math.random() - 0.5) * 60,
-        y: cy,
-        vx: (Math.random() - 0.5) * 5,
-        vy: -(Math.random() * 6 + 2),
-        size: type === 'glow' ? Math.random() * 12 + 6 : Math.floor(Math.random() * 12 + 16),
-        color: type === 'glow' ? 'rgba(255,117,24,0.6)' : null,
-        life: 60 + Math.random() * 40,
-        maxLife: 100,
+        x: cx + (Math.random() - 0.5) * 70,
+        y: cy + (Math.random() - 0.5) * 20,
+        vx: (Math.random() - 0.5) * 6,
+        vy: -(Math.random() * 7 + 2),
+        size: type === 'glow' ? Math.random() * 14 + 6 : Math.floor(Math.random() * 14 + 16),
+        color: type === 'glow' ? 'rgba(255,117,24,0.65)' : null,
+        life: 65 + Math.random() * 45,
+        maxLife: 110,
         alpha: 1,
-        gravity: 0.05
+        gravity: 0.06
       });
     }
   }
@@ -782,7 +1264,7 @@ const PotionEngine = (() => {
   }
 
   return {
-    init, resize, stop, setMode,
+    init, resize, stop, setMode, setRoom,
     jackTalk, jackCelebrate, jackHint,
     zeroHappy, zeroTrick, zeroSad,
     flyIngredientTo, addIngredient, resetCauldron, eruptCauldron,
