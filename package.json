@@ -1,0 +1,11 @@
+{
+  "name": "otb-potion-lab",
+  "version": "1.0.0",
+  "description": "Jack's Potion Lab - NBC preschool learning game for Asher",
+  "scripts": {
+    "start": "node node_modules/serve/build/main.js -l 8086 -s ."
+  },
+  "devDependencies": {
+    "serve": "^14.2.6"
+  }
+}

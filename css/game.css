@@ -1,0 +1,809 @@
+/* ============================================
+   Jack's Potion Lab — Game Styles v1.0
+   NBC-inspired dark palette, preschool touch targets
+   ============================================ */
+
+/* ============ FONTS (inline from OTB Shared) ============ */
+@font-face {
+  font-family: 'Fredoka One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../node_modules/@fontsource/fredoka-one/files/fredoka-one-latin-400-normal.woff2') format('woff2'),
+       local('Fredoka One');
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Fredoka One', 'Segoe UI', sans-serif;
+  background: #0d0d2b;
+  color: #f5f0e0;
+}
+
+/* ============ SCREEN SYSTEM ============ */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: none;
+  width: 100%;
+  height: 100%;
+}
+.screen.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============ SPLASH ============ */
+#screen-splash {
+  background: radial-gradient(ellipse at 50% 40%, #1a0a3e 0%, #0d0d2b 70%);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0;
+}
+
+.splash-stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%, #fff 100%, transparent),
+    radial-gradient(1px 1px at 30% 10%, #fff 100%, transparent),
+    radial-gradient(1.5px 1.5px at 50% 30%, #e8d5ff 100%, transparent),
+    radial-gradient(1px 1px at 70% 15%, #fff 100%, transparent),
+    radial-gradient(1px 1px at 85% 25%, #fff 100%, transparent),
+    radial-gradient(1.5px 1.5px at 20% 60%, #e8d5ff 100%, transparent),
+    radial-gradient(1px 1px at 60% 70%, #fff 100%, transparent),
+    radial-gradient(1px 1px at 90% 80%, #fff 100%, transparent),
+    radial-gradient(2px 2px at 40% 85%, #ffd700 100%, transparent),
+    radial-gradient(1px 1px at 15% 90%, #fff 100%, transparent);
+  animation: stars-twinkle 3s ease-in-out infinite alternate;
+}
+@keyframes stars-twinkle {
+  from { opacity: 0.6; }
+  to   { opacity: 1; }
+}
+
+.splash-moon {
+  position: absolute;
+  top: 8%;
+  right: 12%;
+  width: 80px;
+  height: 80px;
+  background: radial-gradient(circle at 35% 35%, #fff8dc 0%, #e8d5ff 60%, #b89fd4 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 30px rgba(232, 213, 255, 0.4);
+  animation: moon-glow 4s ease-in-out infinite alternate;
+}
+@keyframes moon-glow {
+  from { box-shadow: 0 0 20px rgba(232,213,255,0.3); }
+  to   { box-shadow: 0 0 50px rgba(232,213,255,0.7); }
+}
+
+.splash-jack-silhouette {
+  width: 80px;
+  height: 120px;
+  background: #0d0d2b;
+  clip-path: polygon(
+    50% 0%, 60% 8%, 75% 5%, 70% 18%, 85% 15%, 78% 28%,
+    90% 30%, 78% 38%, 85% 50%, 70% 50%, 68% 65%,
+    75% 100%, 55% 100%, 50% 75%, 45% 100%, 25% 100%,
+    32% 65%, 30% 50%, 15% 50%, 22% 38%, 10% 30%,
+    22% 28%, 15% 15%, 30% 18%, 25% 5%, 40% 8%
+  );
+  background: linear-gradient(to bottom, #e8d5ff 0%, #b89fd4 100%);
+  margin-bottom: 8px;
+  filter: drop-shadow(0 0 12px rgba(232,213,255,0.5));
+  animation: jack-float 3s ease-in-out infinite;
+}
+@keyframes jack-float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%       { transform: translateY(-10px) rotate(2deg); }
+}
+
+.splash-title-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 1;
+}
+
+.splash-title {
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 3rem;
+  color: #ff7518;
+  text-align: center;
+  line-height: 1.1;
+  text-shadow: 0 0 20px rgba(255,117,24,0.6), 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.splash-sub {
+  font-size: 1.1rem;
+  color: #e8d5ff;
+  opacity: 0.85;
+}
+
+.splash-loader {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.splash-loader-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ff7518, #ffd700);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  animation: loader-fill 2s ease forwards;
+}
+@keyframes loader-fill {
+  to { width: 100%; }
+}
+
+/* ============ MENU ============ */
+#screen-menu {
+  background: radial-gradient(ellipse at 50% 30%, #1a0a3e 0%, #0d0d2b 80%);
+  align-items: center;
+  justify-content: center;
+}
+
+#menu-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.menu-overlay {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 20px;
+}
+
+.menu-brand {
+  text-align: center;
+}
+.menu-logo {
+  font-size: 3rem;
+  display: block;
+  animation: logo-float 3s ease-in-out infinite;
+}
+@keyframes logo-float {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50%       { transform: translateY(-8px) rotate(5deg); }
+}
+.menu-title {
+  font-size: 2.2rem;
+  color: #ff7518;
+  text-shadow: 0 0 20px rgba(255,117,24,0.5);
+  line-height: 1.1;
+}
+.menu-player-name {
+  font-size: 1.1rem;
+  color: #e8d5ff;
+  margin-top: 4px;
+}
+
+/* Mini shelf preview */
+.menu-shelf {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 500px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 16px;
+  padding: 10px 16px;
+  border: 1px solid rgba(255,117,24,0.2);
+  min-height: 60px;
+}
+
+.menu-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.menu-progress {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+/* ============ BUTTONS ============ */
+.btn-play {
+  background: linear-gradient(135deg, #ff7518, #e94520);
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  padding: 16px 36px;
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 1.4rem;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(255,117,24,0.5);
+  transition: transform 0.1s, box-shadow 0.1s;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.btn-play:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 10px rgba(255,117,24,0.4);
+}
+.btn-play-icon {
+  font-size: 1.6rem;
+  animation: icon-wobble 2s ease-in-out infinite;
+}
+@keyframes icon-wobble {
+  0%, 100% { transform: rotate(-10deg); }
+  50%       { transform: rotate(10deg); }
+}
+
+.btn-secondary {
+  background: rgba(255,255,255,0.1);
+  color: #e8d5ff;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 50px;
+  padding: 12px 24px;
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 1.1rem;
+  cursor: pointer;
+  min-height: 52px;
+  transition: background 0.15s;
+}
+.btn-secondary:active {
+  background: rgba(255,255,255,0.2);
+}
+
+.btn-danger {
+  background: rgba(232,56,69,0.2);
+  color: #e83845;
+  border: 1px solid rgba(232,56,69,0.4);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+/* ============ GAME SCREEN ============ */
+#screen-game {
+  background: #0d0d2b;
+  position: relative;
+}
+
+#game-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ============ HUD ============ */
+.game-hud {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(0,0,0,0.5);
+  border-bottom: 1px solid rgba(255,117,24,0.3);
+  height: 54px;
+}
+.hud-left, .hud-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 120px;
+}
+.hud-right { justify-content: flex-end; }
+.hud-center {
+  font-size: 1rem;
+  color: #ff7518;
+  text-align: center;
+  flex: 1;
+}
+
+.hud-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 1.2rem;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hud-potions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,117,24,0.15);
+  border: 1px solid rgba(255,117,24,0.4);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 0.95rem;
+  color: #ffd700;
+}
+
+.hud-streak {
+  font-size: 1.1rem;
+  min-width: 40px;
+  text-align: center;
+}
+
+/* ============ QUESTION AREA ============ */
+.question-area {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  padding: 12px 20px 8px;
+}
+
+.question-prompt {
+  display: inline-block;
+  background: rgba(13,13,43,0.85);
+  border: 2px solid rgba(255,117,24,0.5);
+  border-radius: 20px;
+  padding: 12px 24px;
+  font-size: 1.4rem;
+  color: #f5f0e0;
+  max-width: 600px;
+  line-height: 1.3;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  backdrop-filter: blur(4px);
+}
+
+/* ============ INGREDIENTS ============ */
+.ingredients-area {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 8px 20px;
+  flex: 1;
+  /* Push above cauldron - cauldron is drawn on canvas bottom 40% */
+  padding-bottom: 200px;
+}
+
+.ingredient-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 90px;
+  height: 90px;
+  border-radius: 20px;
+  border: 3px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.07);
+  cursor: pointer;
+  font-size: 2.2rem;
+  transition: transform 0.1s, border-color 0.15s, background 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.ingredient-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+.ingredient-btn:active {
+  transform: scale(0.92);
+}
+.ingredient-btn.glow-pulse {
+  animation: ingredient-glow 1.5s ease-in-out infinite;
+  border-color: rgba(255,117,24,0.6);
+}
+@keyframes ingredient-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(255,117,24,0.3); }
+  50%       { box-shadow: 0 0 20px rgba(255,117,24,0.7); }
+}
+.ingredient-btn.correct-flash {
+  animation: correct-flash 0.4s ease forwards;
+}
+@keyframes correct-flash {
+  0%   { background: rgba(46,204,113,0.5); border-color: #2ecc71; transform: scale(1.1); }
+  100% { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.15); transform: scale(1); }
+}
+.ingredient-btn.wrong-shake {
+  animation: wrong-shake 0.4s ease;
+}
+@keyframes wrong-shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-8px); }
+  40%       { transform: translateX(8px); }
+  60%       { transform: translateX(-6px); }
+  80%       { transform: translateX(6px); }
+}
+.ingredient-label {
+  font-size: 0.75rem;
+  color: #e8d5ff;
+  text-align: center;
+  line-height: 1.1;
+  padding: 0 4px;
+}
+
+/* Count-style option buttons */
+.count-option-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,117,24,0.4);
+  background: rgba(255,117,24,0.1);
+  font-size: 2rem;
+  color: #ffd700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s, background 0.15s;
+}
+.count-option-btn:active {
+  transform: scale(0.9);
+}
+
+/* ============ COUNT DISPLAY ============ */
+.count-display {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  padding: 4px 20px;
+  font-size: 3rem;
+  letter-spacing: 8px;
+  color: #ffd700;
+  text-shadow: 0 0 15px rgba(255,215,0,0.5);
+}
+
+/* ============ SALLY HINT ============ */
+.sally-hint {
+  position: absolute;
+  left: 20px;
+  bottom: 180px;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  animation: sally-in 0.4s ease;
+}
+@keyframes sally-in {
+  from { transform: translateX(-40px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+.sally-bubble {
+  background: rgba(232,56,69,0.15);
+  border: 2px solid #e83845;
+  border-radius: 16px 16px 16px 4px;
+  padding: 10px 16px;
+  font-size: 1rem;
+  color: #f5f0e0;
+  max-width: 200px;
+  line-height: 1.3;
+}
+
+/* ============ WRONG FEEDBACK ============ */
+.wrong-feedback {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  background: rgba(13,13,43,0.9);
+  border: 2px solid rgba(255,117,24,0.5);
+  border-radius: 20px;
+  padding: 12px 28px;
+  font-size: 1.3rem;
+  color: #ff7518;
+  pointer-events: none;
+  animation: wrong-popup 1.5s ease forwards;
+}
+@keyframes wrong-popup {
+  0%   { opacity: 0; transform: translate(-50%, -60%) scale(0.8); }
+  20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  80%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -40%) scale(0.9); }
+}
+
+/* ============ POTION COMPLETE ============ */
+#screen-potion {
+  background: radial-gradient(ellipse at 50% 40%, #1a0a3e 0%, #0d0d2b 80%);
+  align-items: center;
+  justify-content: center;
+}
+
+#potion-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.potion-complete-wrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 20px;
+}
+
+.potion-complete-icon {
+  font-size: 5rem;
+  animation: potion-spin 0.6s ease, logo-float 3s ease-in-out 0.6s infinite;
+}
+@keyframes potion-spin {
+  from { transform: rotate(-180deg) scale(0); }
+  to   { transform: rotate(0deg) scale(1); }
+}
+
+.potion-complete-name {
+  font-size: 2.4rem;
+  color: #ff7518;
+  text-shadow: 0 0 20px rgba(255,117,24,0.6);
+}
+.potion-complete-msg {
+  font-size: 1.3rem;
+  color: #e8d5ff;
+}
+.potion-complete-count {
+  font-size: 1rem;
+  color: #aaa;
+  background: rgba(255,255,255,0.05);
+  border-radius: 20px;
+  padding: 6px 16px;
+}
+
+/* ============ SHELF ============ */
+#screen-shelf {
+  background: radial-gradient(ellipse at 50% 20%, #1a0a3e 0%, #0d0d2b 80%);
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.shelf-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(0,0,0,0.4);
+  border-bottom: 1px solid rgba(255,117,24,0.3);
+}
+.shelf-title {
+  font-size: 1.6rem;
+  color: #ff7518;
+  flex: 1;
+  text-align: center;
+}
+.shelf-subtitle {
+  font-size: 0.9rem;
+  color: #aaa;
+  text-align: right;
+  min-width: 100px;
+}
+
+.shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.shelf-potion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.05);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 12px 8px;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  min-height: 90px;
+}
+.shelf-potion.unlocked {
+  border-color: rgba(255,117,24,0.4);
+  background: rgba(255,117,24,0.08);
+}
+.shelf-potion.unlocked:active {
+  transform: scale(0.94);
+}
+.shelf-potion-icon { font-size: 2rem; }
+.shelf-potion-name {
+  font-size: 0.75rem;
+  color: #e8d5ff;
+  text-align: center;
+  line-height: 1.2;
+}
+.shelf-potion.locked .shelf-potion-icon { filter: grayscale(1); opacity: 0.3; }
+.shelf-potion.locked .shelf-potion-name { color: #555; }
+
+/* ============ SESSION COMPLETE ============ */
+#screen-session {
+  background: radial-gradient(ellipse at 50% 40%, #1a0a3e 0%, #0d0d2b 80%);
+  align-items: center;
+  justify-content: center;
+}
+
+#session-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.session-wrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 20px;
+}
+
+.session-title {
+  font-size: 2.8rem;
+  color: #ffd700;
+  text-shadow: 0 0 20px rgba(255,215,0,0.6);
+  animation: session-title-in 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes session-title-in {
+  from { transform: scale(0.5) translateY(20px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+.session-jack {
+  font-size: 4rem;
+  animation: jack-float 3s ease-in-out infinite;
+}
+.session-msg {
+  font-size: 1.3rem;
+  color: #e8d5ff;
+}
+.session-potions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.session-potion-badge {
+  font-size: 2rem;
+  animation: badge-pop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+
+/* ============ MODAL ============ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: #1a0a3e;
+  border: 2px solid rgba(255,117,24,0.4);
+  border-radius: 24px;
+  padding: 28px;
+  width: min(400px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-title {
+  font-size: 1.6rem;
+  color: #ff7518;
+  text-align: center;
+}
+.modal-body {
+  font-size: 1rem;
+  color: #e8d5ff;
+  text-align: center;
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-size: 1rem;
+  color: #e8d5ff;
+}
+.setting-danger { border-bottom: none; }
+
+.toggle-btn {
+  background: rgba(255,117,24,0.2);
+  border: 1px solid rgba(255,117,24,0.5);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 0.9rem;
+  color: #ff7518;
+  cursor: pointer;
+  min-width: 60px;
+}
+.toggle-btn[data-on="false"] {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.2);
+  color: #888;
+}
+
+.name-input {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-family: 'Fredoka One', sans-serif;
+  font-size: 1rem;
+  color: #f5f0e0;
+  width: 140px;
+  text-align: center;
+}
+
+.gate-question {
+  font-size: 2rem;
+  color: #ffd700;
+  text-align: center;
+}
+
+/* ============ MINI POTION (shelf/HUD) ============ */
+.mini-potion {
+  font-size: 1.4rem;
+  opacity: 0.4;
+}
+.mini-potion.earned {
+  opacity: 1;
+  filter: drop-shadow(0 0 6px rgba(255,117,24,0.6));
+}
+
+/* ============ UTILITY ============ */
+.hidden { display: none !important; }
+
+/* Prevent text selection / iOS callout everywhere */
+* {
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
