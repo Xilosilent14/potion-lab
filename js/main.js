@@ -112,8 +112,10 @@
     game.sessionPotions = [];
     game.streak = 0;
 
-    // Set the canvas room background to match the current potion's room
-    PotionEngine.setRoom((game.currentPotion.room || 1) - 1);
+    // Set the canvas room background and music to match the current potion's room
+    const roomIdx = (game.currentPotion.room || 1) - 1;
+    PotionEngine.setRoom(roomIdx);
+    PotionAudio.setRoomMusic(roomIdx);
     PotionEngine.setMode('game');
 
     showScreen('game');

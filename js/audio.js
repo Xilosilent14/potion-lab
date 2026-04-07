@@ -1,5 +1,5 @@
-/* Jack's Potion Lab — Audio Engine v1.0
-   Web Audio API: Halloween Town background + SFX
+/* Jack's Potion Lab — Audio Engine v1.1
+   Web Audio API: Room-specific Halloween Town music + SFX
 */
 
 const PotionAudio = (() => {
@@ -11,6 +11,8 @@ const PotionAudio = (() => {
   let bgStarted = false;
   let musicEnabled = true;
   let sfxEnabled = true;
+  let currentRoomIndex = 0; // 0-based room index
+  let loopGeneration = 0;   // incremented on room change to kill stale loops
 
   function ensureContext() {
     if (ctx) return;
@@ -32,104 +34,360 @@ const PotionAudio = (() => {
     if (ctx && ctx.state === 'suspended') ctx.resume();
   }
 
-  /* ---- Halloween Town ambient music ---- */
-  /* Eerie but cheerful organ + glockenspiel loop in Am */
+  /* ---- Room music definitions ---- */
+  /* All rooms share Am Halloween Town vibe, but vary mood/tempo/texture */
+
+  const ROOM_MUSIC = [
+    // Room 1: Finkelstein's Lab — glockenspiel, bubbly plinks, BPM 80
+    {
+      bpm: 80,
+      melody: [
+        { note: 220, beat: 0, dur: 0.8 },
+        { note: 261.63, beat: 1, dur: 0.8 },
+        { note: 329.63, beat: 2, dur: 0.8 },
+        { note: 440, beat: 3, dur: 0.8 },
+        { note: 392, beat: 4, dur: 0.8 },
+        { note: 329.63, beat: 5, dur: 0.8 },
+        { note: 261.63, beat: 6, dur: 0.8 },
+        { note: 220, beat: 7, dur: 1.4 },
+        { note: 261.63, beat: 8, dur: 0.8 },
+        { note: 329.63, beat: 9, dur: 0.8 },
+        { note: 392, beat: 10, dur: 0.8 },
+        { note: 523.25, beat: 11, dur: 0.8 },
+        { note: 493.88, beat: 12, dur: 0.6 },
+        { note: 392, beat: 13, dur: 0.6 },
+        { note: 329.63, beat: 14, dur: 0.8 },
+        { note: 220, beat: 15, dur: 1.6 },
+      ],
+      bass: [
+        { note: 110, beat: 0, dur: 4 },
+        { note: 110, beat: 8, dur: 4 },
+      ],
+      melodyType: 'sine',
+      shimmerMult: 2.756,
+      shimmerVol: 0.15,
+      melodyVol: 0.5,
+      bassVol: 0.2,
+      extras: 'bubbles', // bubbly plinks like beakers
+    },
+    // Room 2: Graveyard — low, slow, spooky. BPM 70, bass-heavy, wind sweeps
+    {
+      bpm: 70,
+      melody: [
+        { note: 220, beat: 0, dur: 1.8 },
+        { note: 196, beat: 3, dur: 1.8 },
+        { note: 174.61, beat: 6, dur: 2.0 },
+        { note: 196, beat: 9, dur: 1.2 },
+        { note: 220, beat: 11, dur: 2.0 },
+        { note: 174.61, beat: 14, dur: 1.8 },
+      ],
+      bass: [
+        { note: 110, beat: 0, dur: 4 },
+        { note: 82.41, beat: 4, dur: 4 },
+        { note: 110, beat: 8, dur: 4 },
+        { note: 82.41, beat: 12, dur: 4 },
+      ],
+      melodyType: 'sine',
+      shimmerMult: 2.0,
+      shimmerVol: 0.06,
+      melodyVol: 0.25,
+      bassVol: 0.3,
+      extras: 'wind',
+    },
+    // Room 3: Town Square — brighter, cheerful. BPM 90, echo melody
+    {
+      bpm: 90,
+      melody: [
+        { note: 261.63, beat: 0, dur: 0.7 },
+        { note: 293.66, beat: 1, dur: 0.7 },
+        { note: 329.63, beat: 2, dur: 0.7 },
+        { note: 392, beat: 3, dur: 0.7 },
+        { note: 440, beat: 4, dur: 0.9 },
+        { note: 392, beat: 5, dur: 0.7 },
+        { note: 329.63, beat: 6, dur: 0.7 },
+        { note: 293.66, beat: 7, dur: 1.2 },
+        { note: 329.63, beat: 8, dur: 0.7 },
+        { note: 392, beat: 9, dur: 0.7 },
+        { note: 440, beat: 10, dur: 0.7 },
+        { note: 523.25, beat: 11, dur: 0.9 },
+        { note: 493.88, beat: 12, dur: 0.6 },
+        { note: 440, beat: 13, dur: 0.6 },
+        { note: 392, beat: 14, dur: 0.8 },
+        { note: 261.63, beat: 15, dur: 1.4 },
+      ],
+      bass: [
+        { note: 130.81, beat: 0, dur: 4 },
+        { note: 110, beat: 4, dur: 4 },
+        { note: 130.81, beat: 8, dur: 4 },
+        { note: 110, beat: 12, dur: 4 },
+      ],
+      melodyType: 'sine',
+      shimmerMult: 3.0,
+      shimmerVol: 0.18,
+      melodyVol: 0.45,
+      bassVol: 0.15,
+      extras: 'echo',
+    },
+    // Room 4: Oogie's Lair — tense, jazzy. BPM 100, chromatic walking bass
+    {
+      bpm: 100,
+      melody: [
+        { note: 220, beat: 0, dur: 0.5 },
+        { note: 261.63, beat: 1, dur: 0.5 },
+        { note: 277.18, beat: 2, dur: 0.5 },
+        { note: 261.63, beat: 3, dur: 0.5 },
+        { note: 246.94, beat: 4, dur: 0.7 },
+        { note: 220, beat: 5, dur: 0.5 },
+        { note: 207.65, beat: 6, dur: 0.5 },
+        { note: 220, beat: 7, dur: 1.0 },
+        { note: 329.63, beat: 8, dur: 0.5 },
+        { note: 311.13, beat: 9, dur: 0.5 },
+        { note: 293.66, beat: 10, dur: 0.5 },
+        { note: 277.18, beat: 11, dur: 0.5 },
+        { note: 261.63, beat: 12, dur: 0.6 },
+        { note: 246.94, beat: 13, dur: 0.5 },
+        { note: 220, beat: 14, dur: 0.8 },
+        { note: 220, beat: 15, dur: 1.0 },
+      ],
+      bass: [
+        // chromatic walk: A2 Bb2 B2 C3 repeated
+        { note: 110, beat: 0, dur: 1 },
+        { note: 116.54, beat: 1, dur: 1 },
+        { note: 123.47, beat: 2, dur: 1 },
+        { note: 130.81, beat: 3, dur: 1 },
+        { note: 110, beat: 4, dur: 1 },
+        { note: 116.54, beat: 5, dur: 1 },
+        { note: 123.47, beat: 6, dur: 1 },
+        { note: 130.81, beat: 7, dur: 1 },
+        { note: 110, beat: 8, dur: 1 },
+        { note: 116.54, beat: 9, dur: 1 },
+        { note: 123.47, beat: 10, dur: 1 },
+        { note: 130.81, beat: 11, dur: 1 },
+        { note: 110, beat: 12, dur: 1 },
+        { note: 116.54, beat: 13, dur: 1 },
+        { note: 123.47, beat: 14, dur: 1 },
+        { note: 130.81, beat: 15, dur: 1 },
+      ],
+      melodyType: 'triangle',
+      shimmerMult: 2.5,
+      shimmerVol: 0.08,
+      melodyVol: 0.35,
+      bassVol: 0.22,
+      extras: 'none',
+    },
+    // Room 5: Jack's Tower — grand, triumphant. BPM 85, full harmony + pad
+    {
+      bpm: 85,
+      melody: [
+        { note: 261.63, beat: 0, dur: 0.9 },
+        { note: 329.63, beat: 1, dur: 0.9 },
+        { note: 392, beat: 2, dur: 0.9 },
+        { note: 523.25, beat: 3, dur: 1.2 },
+        { note: 440, beat: 5, dur: 0.9 },
+        { note: 392, beat: 6, dur: 0.9 },
+        { note: 329.63, beat: 7, dur: 1.2 },
+        { note: 392, beat: 8, dur: 0.9 },
+        { note: 440, beat: 9, dur: 0.9 },
+        { note: 523.25, beat: 10, dur: 0.9 },
+        { note: 659.25, beat: 11, dur: 1.2 },
+        { note: 587.33, beat: 13, dur: 0.8 },
+        { note: 523.25, beat: 14, dur: 0.9 },
+        { note: 440, beat: 15, dur: 1.6 },
+      ],
+      bass: [
+        { note: 130.81, beat: 0, dur: 4 },
+        { note: 110, beat: 4, dur: 4 },
+        { note: 130.81, beat: 8, dur: 4 },
+        { note: 146.83, beat: 12, dur: 4 },
+      ],
+      melodyType: 'sine',
+      shimmerMult: 2.756,
+      shimmerVol: 0.2,
+      melodyVol: 0.5,
+      bassVol: 0.2,
+      extras: 'pad',
+    },
+  ];
+
+  /* ---- Halloween Town ambient music engine ---- */
   function startMusic() {
     if (!musicEnabled) return;
     ensureContext();
     resume();
     if (bgStarted) return;
     bgStarted = true;
+    loopGeneration++;
+    _runMusicLoop(loopGeneration);
+  }
 
-    const BPM = 80;
+  function _runMusicLoop(gen) {
+    if (!bgStarted || !musicEnabled || gen !== loopGeneration) return;
+
+    const room = ROOM_MUSIC[currentRoomIndex] || ROOM_MUSIC[0];
+    const BPM = room.bpm;
     const BEAT = 60 / BPM;
+    const LOOP = 16 * BEAT;
     const now = ctx.currentTime;
 
-    // Halloween Town melody (Am pentatonic, glockenspiel-like)
-    const melody = [
-      // bar 1: A C E A
-      { note: 220, beat: 0, dur: 0.8 },
-      { note: 261.63, beat: 1, dur: 0.8 },
-      { note: 329.63, beat: 2, dur: 0.8 },
-      { note: 440, beat: 3, dur: 0.8 },
-      // bar 2: G E C A
-      { note: 392, beat: 4, dur: 0.8 },
-      { note: 329.63, beat: 5, dur: 0.8 },
-      { note: 261.63, beat: 6, dur: 0.8 },
-      { note: 220, beat: 7, dur: 1.4 },
-      // bar 3: C E G C
-      { note: 261.63, beat: 8, dur: 0.8 },
-      { note: 329.63, beat: 9, dur: 0.8 },
-      { note: 392, beat: 10, dur: 0.8 },
-      { note: 523.25, beat: 11, dur: 0.8 },
-      // bar 4: B G E A (half step tension, resolves)
-      { note: 493.88, beat: 12, dur: 0.6 },
-      { note: 392, beat: 13, dur: 0.6 },
-      { note: 329.63, beat: 14, dur: 0.8 },
-      { note: 220, beat: 15, dur: 1.6 },
-    ];
+    // Schedule melody notes
+    room.melody.forEach(({ note, beat, dur }) => {
+      const t = now + beat * BEAT;
+      // Main voice
+      const osc = ctx.createOscillator();
+      const env = ctx.createGain();
+      osc.type = room.melodyType || 'sine';
+      osc.frequency.value = note;
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(room.melodyVol, t + 0.01);
+      env.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      osc.connect(env);
+      env.connect(musicGain);
+      osc.start(t);
+      osc.stop(t + dur + 0.1);
 
-    const LOOP = 16 * BEAT;
+      // Shimmer partial
+      const osc2 = ctx.createOscillator();
+      const env2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.value = note * room.shimmerMult;
+      env2.gain.setValueAtTime(0, t);
+      env2.gain.linearRampToValueAtTime(room.shimmerVol, t + 0.01);
+      env2.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.5);
+      osc2.connect(env2);
+      env2.connect(musicGain);
+      osc2.start(t);
+      osc2.stop(t + dur * 0.5 + 0.05);
+    });
 
-    function scheduleLoop(startTime) {
-      melody.forEach(({ note, beat, dur }) => {
-        const t = startTime + beat * BEAT;
-        // Glockenspiel = sine + high partial, fast attack, slow decay
+    // Schedule bass
+    room.bass.forEach(({ note, beat, dur }) => {
+      const t = now + beat * BEAT;
+      const osc = ctx.createOscillator();
+      const env = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = note;
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(room.bassVol, t + 0.05);
+      env.gain.linearRampToValueAtTime(room.bassVol * 0.4, t + (dur - 1) * BEAT);
+      env.gain.linearRampToValueAtTime(0.001, t + dur * BEAT);
+      osc.connect(env);
+      env.connect(musicGain);
+      osc.start(t);
+      osc.stop(t + dur * BEAT + 0.1);
+    });
+
+    // Room-specific extra layers
+    if (room.extras === 'bubbles') {
+      // Occasional high plinks like beakers bubbling (3-5 per loop)
+      const count = 3 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < count; i++) {
+        const t = now + Math.random() * LOOP;
+        const freq = 1200 + Math.random() * 1800;
         const osc = ctx.createOscillator();
         const env = ctx.createGain();
-        const osc2 = ctx.createOscillator();
-        const env2 = ctx.createGain();
-
         osc.type = 'sine';
-        osc.frequency.value = note;
+        osc.frequency.setValueAtTime(freq, t);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.7, t + 0.08);
         env.gain.setValueAtTime(0, t);
-        env.gain.linearRampToValueAtTime(0.5, t + 0.01);
-        env.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        env.gain.linearRampToValueAtTime(0.08, t + 0.005);
+        env.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
         osc.connect(env);
+        env.connect(musicGain);
+        osc.start(t);
+        osc.stop(t + 0.15);
+      }
+    } else if (room.extras === 'wind') {
+      // Occasional filtered noise sweep (wind howl)
+      const windCount = 1 + Math.floor(Math.random() * 2);
+      for (let w = 0; w < windCount; w++) {
+        const t = now + Math.random() * (LOOP - 2);
+        const dur = 1.5 + Math.random();
+        // Use oscillator detuning to approximate wind
+        const osc = ctx.createOscillator();
+        const env = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(80, t);
+        osc.frequency.linearRampToValueAtTime(120, t + dur * 0.5);
+        osc.frequency.linearRampToValueAtTime(60, t + dur);
+        // Bandpass filter
+        const bp = ctx.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.value = 400;
+        bp.Q.value = 2;
+        env.gain.setValueAtTime(0, t);
+        env.gain.linearRampToValueAtTime(0.04, t + dur * 0.3);
+        env.gain.linearRampToValueAtTime(0, t + dur);
+        osc.connect(bp);
+        bp.connect(env);
         env.connect(musicGain);
         osc.start(t);
         osc.stop(t + dur + 0.1);
-
-        // 2nd partial (shimmer)
-        osc2.type = 'sine';
-        osc2.frequency.value = note * 2.756; // inharmonic shimmer
-        env2.gain.setValueAtTime(0, t);
-        env2.gain.linearRampToValueAtTime(0.15, t + 0.01);
-        env2.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.5);
-        osc2.connect(env2);
-        env2.connect(musicGain);
-        osc2.start(t);
-        osc2.stop(t + dur * 0.5 + 0.05);
-      });
-
-      // Organ bass (low sine drones on beats 1,3)
-      [0, 8].forEach(beat => {
-        const t = startTime + beat * BEAT;
+      }
+    } else if (room.extras === 'echo') {
+      // Higher octave echo of melody notes, delayed by half a beat
+      room.melody.forEach(({ note, beat, dur }) => {
+        const t = now + (beat + 0.5) * BEAT;
+        if (t > now + LOOP) return;
         const osc = ctx.createOscillator();
         const env = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.value = 110; // A2
+        osc.frequency.value = note * 2; // octave up
         env.gain.setValueAtTime(0, t);
-        env.gain.linearRampToValueAtTime(0.2, t + 0.05);
-        env.gain.linearRampToValueAtTime(0.08, t + 3 * BEAT);
-        env.gain.linearRampToValueAtTime(0.001, t + 4 * BEAT);
+        env.gain.linearRampToValueAtTime(0.12, t + 0.01);
+        env.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.6);
         osc.connect(env);
         env.connect(musicGain);
         osc.start(t);
-        osc.stop(t + 4 * BEAT + 0.1);
+        osc.stop(t + dur * 0.6 + 0.05);
       });
-
-      // Schedule next loop
-      setTimeout(() => {
-        if (bgStarted && musicEnabled) scheduleLoop(startTime + LOOP);
-      }, (LOOP - 2) * 1000);
+    } else if (room.extras === 'pad') {
+      // Sustained chord pad: Am (A3 C4 E4)
+      [220, 261.63, 329.63].forEach(freq => {
+        const osc = ctx.createOscillator();
+        const env = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        env.gain.setValueAtTime(0, now);
+        env.gain.linearRampToValueAtTime(0.06, now + 1.0);
+        env.gain.linearRampToValueAtTime(0.06, now + LOOP - 1.0);
+        env.gain.linearRampToValueAtTime(0, now + LOOP);
+        osc.connect(env);
+        env.connect(musicGain);
+        osc.start(now);
+        osc.stop(now + LOOP + 0.1);
+      });
     }
 
-    scheduleLoop(now + 0.1);
+    // Schedule next loop iteration
+    setTimeout(() => {
+      if (bgStarted && musicEnabled && gen === loopGeneration) {
+        _runMusicLoop(gen);
+      }
+    }, (LOOP - 1) * 1000);
   }
 
   function stopMusic() {
     bgStarted = false;
+    loopGeneration++;
+  }
+
+  /* Switch room music with crossfade */
+  function setRoomMusic(roomIndex) {
+    const idx = Math.max(0, Math.min(4, roomIndex));
+    if (idx === currentRoomIndex && bgStarted) return;
+    currentRoomIndex = idx;
+    if (!bgStarted || !musicEnabled) return;
+    // Fade out current, restart with new room params
+    ensureContext();
+    const fadeTime = 0.3;
+    musicGain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + fadeTime);
+    loopGeneration++;
+    const gen = loopGeneration;
+    setTimeout(() => {
+      if (gen !== loopGeneration) return;
+      musicGain.gain.setValueAtTime(0.35, ctx.currentTime);
+      _runMusicLoop(gen);
+    }, fadeTime * 1000 + 50);
   }
 
   /* ---- SFX ---- */
@@ -368,7 +626,7 @@ const PotionAudio = (() => {
 
   return {
     resume,
-    startMusic, stopMusic, setMusic, setSfx, setTts,
+    startMusic, stopMusic, setMusic, setSfx, setTts, setRoomMusic,
     jackSpeak, jackPraise, jackAnnouncePotion, jackWrongLine,
     playCorrect, playWrong, playPickup,
     playCauldronBubble, playCauldronErupt, playPotionComplete,
