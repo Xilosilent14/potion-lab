@@ -15,7 +15,7 @@ const PotionProgress = (() => {
     bestStreak: 0,
     consecutiveDays: 0,
     lastPlayDate: null,
-    settings: { music: true, sfx: true },
+    settings: { music: true, sfx: true, tts: true },
     concepts: {}             // per-concept spaced rep tracking
   });
 

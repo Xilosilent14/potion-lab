@@ -12,14 +12,19 @@ const PotionAchievements = (() => {
         { id: 'ten-potions', name: 'Skilled Brewer', icon: '🧙', desc: 'Brew 10 different potions' },
 
         // Collection milestones
-        { id: 'half-potions', name: 'Halfway Brewed', icon: '📖', desc: 'Collect 12 of 24 potions' },
-        { id: 'all-potions', name: 'Potion Master', icon: '👑', desc: 'Collect all 24 potions' },
+        { id: 'half-potions', name: 'Halfway Brewed', icon: '📖', desc: 'Collect half the potions' },
+        { id: 'all-potions', name: 'Potion Master', icon: '👑', desc: 'Collect all 69 potions' },
 
         // Room exploration
         { id: 'room-2', name: 'Graveyard Explorer', icon: '🪦', desc: 'Unlock the Graveyard' },
         { id: 'room-3', name: 'Town Visitor', icon: '🏘️', desc: 'Reach Town Square' },
         { id: 'room-4', name: 'Brave Soul', icon: '🎲', desc: 'Enter Oogie\'s Lair' },
         { id: 'room-5', name: 'Jack\'s Tower', icon: '🗼', desc: 'Reach Jack\'s Tower' },
+
+        // Grade milestones
+        { id: 'grade-kinder', name: 'Kindergarten!', icon: '🎓', desc: 'Advance to Kindergarten' },
+        { id: 'grade-1st', name: '1st Grader!', icon: '📚', desc: 'Advance to 1st Grade' },
+        { id: 'grade-2nd', name: '2nd Grader!', icon: '🏆', desc: 'Advance to 2nd Grade' },
 
         // Accuracy
         { id: 'streak-5', name: 'Hot Cauldron', icon: '🔥', desc: 'Get 5 correct in a row' },
@@ -72,10 +77,10 @@ const PotionAchievements = (() => {
         if (potionCount >= 10) {
             if (_award('ten-potions')) newlyEarned.push(get('ten-potions'));
         }
-        if (potionCount >= 12) {
+        if (potionCount >= 35) {
             if (_award('half-potions')) newlyEarned.push(get('half-potions'));
         }
-        if (potionCount >= 24) {
+        if (potionCount >= 69) {
             if (_award('all-potions')) newlyEarned.push(get('all-potions'));
         }
 
@@ -91,6 +96,18 @@ const PotionAchievements = (() => {
         }
         if (potionCount >= 18) {
             if (_award('room-5')) newlyEarned.push(get('room-5'));
+        }
+
+        // Grade milestones
+        const grade = PotionProgress.getCurrentGrade();
+        if (grade === 'kinder' || grade === 'grade1' || grade === 'grade2') {
+            if (_award('grade-kinder')) newlyEarned.push(get('grade-kinder'));
+        }
+        if (grade === 'grade1' || grade === 'grade2') {
+            if (_award('grade-1st')) newlyEarned.push(get('grade-1st'));
+        }
+        if (grade === 'grade2') {
+            if (_award('grade-2nd')) newlyEarned.push(get('grade-2nd'));
         }
 
         // Streaks (answer streaks)
