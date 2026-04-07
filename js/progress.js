@@ -54,7 +54,8 @@ const PotionProgress = (() => {
 
   function getNextPotionId() {
     const s = get();
-    for (let i = 1; i <= 24; i++) {
+    const total = (typeof TOTAL_POTIONS !== 'undefined') ? TOTAL_POTIONS : 69;
+    for (let i = 1; i <= total; i++) {
       if (!s.potionsCollected.includes(i)) return i;
     }
     return null; // all collected!
@@ -62,11 +63,32 @@ const PotionProgress = (() => {
 
   function getCurrentRoom() {
     const count = getPotionCount();
+    // 2nd Grade rooms (12-14)
+    if (count >= 65) return 14;
+    if (count >= 60) return 13;
+    if (count >= 54) return 12;
+    // 1st Grade rooms (9-11)
+    if (count >= 50) return 11;
+    if (count >= 45) return 10;
+    if (count >= 39) return 9;
+    // Kindergarten rooms (6-8)
+    if (count >= 35) return 8;
+    if (count >= 30) return 7;
+    if (count >= 24) return 6;
+    // Pre-K rooms (1-5)
     if (count >= 18) return 5;
     if (count >= 15) return 4;
     if (count >= 10) return 3;
     if (count >= 5)  return 2;
     return 1;
+  }
+
+  function getCurrentGrade() {
+    const count = getPotionCount();
+    if (count >= 54) return 'grade2';
+    if (count >= 39) return 'grade1';
+    if (count >= 24) return 'kinder';
+    return 'prek';
   }
 
   /* ---- Concepts / Spaced Rep ---- */
@@ -155,7 +177,7 @@ const PotionProgress = (() => {
 
   return {
     load, get, save,
-    collectPotion, hasPotion, getPotionCount, getNextPotionId, getCurrentRoom,
+    collectPotion, hasPotion, getPotionCount, getNextPotionId, getCurrentRoom, getCurrentGrade,
     recordAnswer, getWeakConcepts,
     recordSession,
     getSettings, saveSettings,

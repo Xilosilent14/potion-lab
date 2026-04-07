@@ -210,6 +210,13 @@ html, body {
   color: #e8d5ff;
   margin-top: 4px;
 }
+.menu-grade-label {
+  font-size: 0.95rem;
+  color: #ffd700;
+  font-family: 'Fredoka One', sans-serif;
+  margin-top: 2px;
+  text-shadow: 0 0 10px rgba(255,215,0,0.4);
+}
 
 /* Mini shelf preview */
 .menu-shelf {
@@ -332,6 +339,13 @@ html, body {
   color: #ff7518;
   text-align: center;
   flex: 1;
+}
+.hud-grade-badge {
+  font-size: 0.7rem;
+  color: #ffd700;
+  font-family: 'Fredoka One', sans-serif;
+  opacity: 0.8;
+  margin-top: 1px;
 }
 
 .hud-btn {
@@ -588,6 +602,7 @@ html, body {
   background: radial-gradient(circle at 35% 32%, #2e1e64, #16103e 60%, #0c0c28);
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
@@ -655,11 +670,64 @@ html, body {
   z-index: 1;
 }
 
+/* --- Word/text answer buttons (sight words, rhyming, blends, vowel teams, time, fractions) --- */
+.opt-word {
+  min-width: 100px;
+  height: auto;
+  padding: 12px 20px;
+  border-radius: 16px;
+  border: 3px solid rgba(232,168,86,0.45);
+  background: radial-gradient(circle at 35% 32%, #2e1e64, #16103e 60%, #0c0c28);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.1s, box-shadow 0.15s;
+  box-shadow: 0 0 14px rgba(232,168,86,0.15), 0 4px 14px rgba(0,0,0,0.5);
+}
+.opt-word::before {
+  content: '';
+  position: absolute;
+  top: 3px; left: 15%; right: 15%;
+  height: 30%;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.12) 0%, transparent 100%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.opt-word:active { transform: scale(0.91); }
+.opt-word-icon {
+  font-size: 1.4rem;
+  position: relative;
+  z-index: 1;
+}
+.opt-word-text {
+  font-size: 1.3rem;
+  font-family: 'Fredoka One', sans-serif;
+  color: #ffeebb;
+  text-shadow: 0 0 12px rgba(232,168,86,0.5), 0 2px 4px rgba(0,0,0,0.8);
+  line-height: 1.2;
+  position: relative;
+  z-index: 1;
+}
+.opt-number-label {
+  font-size: 0.7rem;
+  font-family: 'Nunito', sans-serif;
+  color: rgba(255,215,0,0.7);
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin-top: 2px;
+}
+
 /* --- Shared state animations for all button types --- */
 .opt-color.correct-flash,
 .opt-letter.correct-flash,
 .opt-number.correct-flash,
 .opt-shape.correct-flash,
+.opt-word.correct-flash,
 .count-option-btn.correct-flash {
   animation: correct-flash 0.4s ease forwards;
 }
@@ -667,6 +735,7 @@ html, body {
 .opt-letter.wrong-shake,
 .opt-number.wrong-shake,
 .opt-shape.wrong-shake,
+.opt-word.wrong-shake,
 .count-option-btn.wrong-shake {
   animation: wrong-shake 0.4s ease;
 }
@@ -674,6 +743,7 @@ html, body {
 .opt-letter.glow-pulse,
 .opt-number.glow-pulse,
 .opt-shape.glow-pulse,
+.opt-word.glow-pulse,
 .count-option-btn.glow-pulse {
   animation: ingredient-glow 1.5s ease-in-out infinite;
   border-color: rgba(255,117,24,0.7) !important;
@@ -1184,6 +1254,8 @@ html, body {
     .opt-number-char { font-size: 2.2rem; }
     .opt-shape { width: 76px; height: 76px; }
     .opt-shape-icon { font-size: 2rem; }
+    .opt-word { min-width: 80px; padding: 8px 14px; }
+    .opt-word-text { font-size: 1.1rem; }
     .opt-shape-label { font-size: 0.65rem; }
     .count-option-btn { width: 64px; height: 64px; font-size: 1.6rem; }
     .count-display { font-size: 2.2rem; padding: 4px 16px; letter-spacing: 6px; }

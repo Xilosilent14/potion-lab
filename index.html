@@ -8,6 +8,8 @@
   <meta name="theme-color" content="#ff7518">
   <title>Jack's Potion Lab</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="css/shared/design-system.css">
   <link rel="stylesheet" href="css/game.css">
 </head>
@@ -31,11 +33,14 @@
   <!-- ===== MENU ===== -->
   <div id="screen-menu" class="screen">
     <canvas id="menu-canvas"></canvas>
+    <div class="otb-badge" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:15;">Blake Boys Gaming</div>
+    <a id="bbg-logo-link" href="#" class="bbg-corner-logo-link" aria-label="Return to Hub"><img src="assets/bbg-logo.png" alt="BBG" class="bbg-corner-logo"></a>
     <div class="menu-overlay">
       <div class="menu-brand">
         <span class="menu-logo">🧪</span>
         <h1 class="menu-title">Jack's Potion Lab</h1>
         <p class="menu-player-name" id="menu-player">Hi, Asher!</p>
+        <p class="menu-grade-label" id="menu-grade"></p>
       </div>
       <div class="menu-shelf" id="menu-shelf">
         <!-- Potion collection shelf rendered here -->
@@ -47,10 +52,12 @@
         </button>
         <button class="btn-secondary" id="btn-settings-menu">⚙️ Settings</button>
         <button class="btn-secondary" id="btn-dashboard">📊 Progress</button>
-        <button class="btn-secondary" id="btn-hub-home" onclick="if(typeof OTBConfig!=='undefined')window.location.href=OTBConfig.getHubUrl()">🏠 Hub</button>
+        <button class="btn-secondary" id="btn-hub-home" style="display:none" onclick="if(typeof OTBConfig!=='undefined')window.location.href=OTBConfig.getHubUrl()">🏠 Hub</button>
       </div>
       <div class="menu-progress" id="menu-progress">
-        <span id="menu-potions-count">0</span> / 24 potions collected
+        <span id="menu-potions-count">0</span> potions collected
+        <span class="menu-streak-badge" id="menu-streak-badge" style="display:none;"></span>
+        <span class="menu-achievement-count" id="menu-achievement-count" style="display:none;"></span>
       </div>
     </div>
   </div>
@@ -69,7 +76,10 @@
           <span id="hud-potion-count">0 / 5</span>
         </div>
       </div>
-      <div class="hud-center" id="hud-title">Jack's Potion Lab</div>
+      <div class="hud-center">
+        <div id="hud-title">Jack's Potion Lab</div>
+        <div class="hud-grade-badge" id="hud-grade"></div>
+      </div>
       <div class="hud-right">
         <div class="hud-streak" id="hud-streak"></div>
         <button class="hud-btn" id="btn-settings-game" aria-label="Open settings">⚙️</button>
@@ -207,6 +217,8 @@
   <script src="js/audio.js"></script>
   <script src="js/progress.js"></script>
   <script src="js/engine.js"></script>
+  <script src="js/achievements.js"></script>
   <script src="js/main.js"></script>
+  <script>if(typeof OTBConfig!=='undefined'){const u=OTBConfig.getHubUrl();const l=document.getElementById('bbg-logo-link');if(l)l.href=u;}</script>
 </body>
 </html>
