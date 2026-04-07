@@ -8,12 +8,14 @@
   <meta name="theme-color" content="#ff7518">
   <title>Jack's Potion Lab</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/shared/design-system.css">
   <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
 
   <!-- ===== SPLASH ===== -->
   <div id="screen-splash" class="screen active">
+    <div class="otb-splash-badge">Blake Boys Gaming</div>
     <div class="splash-stars"></div>
     <div class="splash-moon"></div>
     <div class="splash-title-wrap">
@@ -45,6 +47,7 @@
         </button>
         <button class="btn-secondary" id="btn-settings-menu">⚙️ Settings</button>
         <button class="btn-secondary" id="btn-dashboard">📊 Progress</button>
+        <button class="btn-secondary" id="btn-hub-home" onclick="if(typeof OTBConfig!=='undefined')window.location.href=OTBConfig.getHubUrl()">🏠 Hub</button>
       </div>
       <div class="menu-progress" id="menu-progress">
         <span id="menu-potions-count">0</span> / 24 potions collected
@@ -198,6 +201,8 @@
   </div>
 
   <!-- Scripts -->
+  <script src="js/otb-config.js"></script>
+  <script src="js/ecosystem.js"></script>
   <script src="data/potions.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/progress.js"></script>

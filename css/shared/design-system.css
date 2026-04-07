@@ -1,0 +1,592 @@
+/* ============================================
+   OTB Games — Shared Design System
+   Unified visual language for all OTB games
+   ============================================ */
+
+/* ============ FONTS ============ */
+@font-face {
+    font-family: 'Fredoka One';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/fredoka-one.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Nunito';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/nunito-regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Nunito';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('fonts/nunito-semibold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Nunito';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('fonts/nunito-semibold.woff2') format('woff2');
+}
+
+/* ============ OTB DESIGN TOKENS ============ */
+:root {
+    /* Brand colors (shared across all games) */
+    --otb-bg-primary: #1a1a2e;
+    --otb-bg-secondary: #16213e;
+    --otb-bg-tertiary: #0f3460;
+    --otb-success: #2ecc71;
+    --otb-danger: #e74c3c;
+    --otb-warning: #f39c12;
+    --otb-coin: #ffd700;
+    --otb-xp: #9b59b6;
+    --otb-text: #f0f0f0;
+    --otb-text-muted: #aaaaaa;
+    --otb-text-dim: #888888;
+    --otb-border: rgba(255, 255, 255, 0.15);
+    --otb-border-active: rgba(255, 255, 255, 0.3);
+    --otb-overlay: rgba(0, 0, 0, 0.7);
+    --otb-panel: rgba(0, 0, 0, 0.3);
+    --otb-panel-solid: #2d2d2d;
+
+    /* Game accent (override per game) */
+    --game-accent: #4A90D9;
+    --game-accent-dark: #3570B0;
+    --game-accent-glow: rgba(74, 144, 217, 0.3);
+
+    /* Typography */
+    --otb-font-heading: 'Fredoka One', 'Segoe UI', sans-serif;
+    --otb-font-body: 'Nunito', 'Segoe UI', sans-serif;
+
+    /* Spacing & sizing */
+    --otb-touch-min: 44px;
+    --otb-radius-sm: 8px;
+    --otb-radius-md: 16px;
+    --otb-radius-lg: 24px;
+    --otb-gap-sm: 4px;
+    --otb-gap-md: 8px;
+    --otb-gap-lg: 16px;
+    --otb-gap-xl: 24px;
+}
+
+/* ============ OTB BRANDING BADGE ============ */
+.otb-badge {
+    font-family: var(--otb-font-heading);
+    font-size: 0.7rem;
+    color: var(--otb-text-muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.6;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* ============ OTB SHARED BUTTONS ============ */
+.otb-btn {
+    font-family: var(--otb-font-body);
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+    border: none;
+    border-radius: var(--otb-radius-md);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: transform 0.1s, box-shadow 0.1s, filter 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    min-height: var(--otb-touch-min);
+    min-width: var(--otb-touch-min);
+    padding: 12px 24px;
+    will-change: transform;
+}
+
+.otb-btn:active {
+    transform: scale(0.93);
+    filter: brightness(0.85);
+    transition: transform 0.05s, filter 0.05s;
+}
+
+.otb-btn:focus-visible {
+    outline: 3px solid var(--otb-coin);
+    outline-offset: 2px;
+}
+
+.otb-btn-primary {
+    background: linear-gradient(135deg, var(--game-accent), var(--game-accent-dark));
+    box-shadow: 0 4px 15px var(--game-accent-glow);
+}
+
+.otb-btn-secondary {
+    background: linear-gradient(135deg, var(--otb-bg-tertiary), var(--otb-bg-secondary));
+    border: 2px solid var(--game-accent);
+    box-shadow: 0 4px 15px rgba(15, 52, 96, 0.4);
+}
+
+.otb-btn-small {
+    font-size: 0.85rem;
+    padding: 8px 16px;
+    min-height: 36px;
+    letter-spacing: 0.5px;
+}
+
+.otb-btn-large {
+    font-size: 1.2rem;
+    padding: 16px 40px;
+    min-width: 200px;
+    min-height: 56px;
+}
+
+/* ============ OTB PANELS ============ */
+.otb-panel {
+    background: var(--otb-panel);
+    border: 2px solid var(--otb-border);
+    border-radius: var(--otb-radius-md);
+    padding: var(--otb-gap-lg);
+}
+
+.otb-panel-solid {
+    background: var(--otb-panel-solid);
+    border: 2px solid var(--otb-border);
+    border-radius: var(--otb-radius-md);
+    padding: var(--otb-gap-lg);
+}
+
+/* ============ OTB OVERLAY ============ */
+.otb-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--otb-overlay);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+}
+
+/* ============ OTB TOGGLE SWITCH ============ */
+.otb-toggle-track {
+    width: 60px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 18px;
+    position: relative;
+    transition: background 0.2s;
+    cursor: pointer;
+    min-width: 60px;
+}
+
+.otb-toggle-track.on {
+    background: var(--otb-success);
+}
+
+.otb-toggle-thumb {
+    width: 30px;
+    height: 30px;
+    background: #fff;
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: left 0.2s;
+}
+
+.otb-toggle-track.on .otb-toggle-thumb {
+    left: 27px;
+}
+
+/* ============ OTB PROGRESS BAR ============ */
+.otb-progress {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.otb-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--game-accent), var(--otb-coin));
+    transition: width 0.3s ease;
+}
+
+/* ============ OTB ACHIEVEMENT TOAST ============ */
+.otb-toast {
+    position: fixed;
+    top: -80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--otb-panel-solid);
+    border: 2px solid var(--otb-coin);
+    border-radius: var(--otb-radius-md);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 200;
+    max-width: 400px;
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+    animation: otb-toast-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.otb-toast-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.otb-toast-title {
+    font-family: var(--otb-font-heading);
+    font-size: 0.9rem;
+    color: var(--otb-coin);
+}
+
+.otb-toast-desc {
+    font-family: var(--otb-font-body);
+    font-size: 0.75rem;
+    color: var(--otb-text-muted);
+    margin-top: 2px;
+}
+
+@keyframes otb-toast-in {
+    0% { top: -80px; }
+    100% { top: 16px; }
+}
+
+@keyframes otb-toast-out {
+    0% { top: 16px; opacity: 1; }
+    100% { top: -80px; opacity: 0; }
+}
+
+/* ============ OTB SETTINGS LAYOUT ============ */
+.otb-settings-group {
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.otb-settings-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid var(--otb-border);
+    border-radius: var(--otb-radius-md);
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.otb-settings-item:active {
+    transform: scale(0.98);
+}
+
+.otb-settings-item.on {
+    border-color: rgba(46, 204, 113, 0.5);
+}
+
+.otb-settings-item-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.otb-settings-icon {
+    font-size: 1.4rem;
+}
+
+.otb-settings-label {
+    font-family: var(--otb-font-body);
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--otb-text);
+}
+
+.otb-settings-desc {
+    font-family: var(--otb-font-body);
+    font-size: 0.7rem;
+    color: var(--otb-text-muted);
+    margin-top: 2px;
+}
+
+/* ============ OTB PARENT DASHBOARD ============ */
+.otb-dashboard-section {
+    background: var(--otb-panel);
+    border: 2px solid var(--otb-border);
+    border-radius: var(--otb-radius-md);
+    padding: var(--otb-gap-lg);
+    margin-bottom: var(--otb-gap-lg);
+}
+
+.otb-dashboard-section h3 {
+    font-family: var(--otb-font-heading);
+    font-size: 1rem;
+    color: var(--game-accent);
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--otb-border);
+    padding-bottom: 8px;
+}
+
+.otb-stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-family: var(--otb-font-body);
+    font-size: 0.9rem;
+}
+
+.otb-stat-label {
+    color: var(--otb-text-muted);
+}
+
+.otb-stat-value {
+    font-weight: 700;
+    color: var(--otb-text);
+}
+
+.otb-stat-value.gold {
+    color: var(--otb-coin);
+}
+
+.otb-stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--otb-gap-md);
+    text-align: center;
+}
+
+.otb-stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--otb-radius-sm);
+    padding: 10px;
+}
+
+.otb-stat-card .label {
+    font-family: var(--otb-font-body);
+    font-size: 0.7rem;
+    color: var(--otb-text-dim);
+    display: block;
+    margin-bottom: 4px;
+}
+
+.otb-stat-card .value {
+    font-family: var(--otb-font-heading);
+    font-size: 1.2rem;
+    color: var(--otb-coin);
+}
+
+/* ============ OTB ACCURACY BARS ============ */
+.otb-accuracy-bar {
+    width: 100px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.otb-accuracy-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+
+.otb-accuracy-fill.high { background: var(--otb-success); }
+.otb-accuracy-fill.medium { background: var(--otb-warning); }
+.otb-accuracy-fill.low { background: var(--otb-danger); }
+
+/* ============ OTB RESULTS STARS ============ */
+.otb-stars {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin: 12px 0;
+}
+
+.otb-star {
+    font-size: 2rem;
+    opacity: 0;
+    transform: scale(0.5);
+    animation: otb-star-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.otb-star:nth-child(1) { animation-delay: 0.2s; }
+.otb-star:nth-child(2) { animation-delay: 0.4s; }
+.otb-star:nth-child(3) { animation-delay: 0.6s; }
+
+.otb-star.earned { color: var(--otb-coin); }
+.otb-star.empty { color: #444; }
+
+@keyframes otb-star-pop {
+    0% { opacity: 0; transform: scale(0.5); }
+    70% { opacity: 1; transform: scale(1.3); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* ============ OTB SPLASH / LOADING ============ */
+.otb-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: linear-gradient(180deg, var(--otb-bg-tertiary) 0%, var(--otb-bg-primary) 60%, var(--otb-bg-secondary) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    transition: opacity 0.5s ease;
+}
+
+.otb-splash-badge {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--otb-font-heading);
+    font-size: 0.65rem;
+    color: var(--otb-text-muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.5;
+}
+
+.otb-splash-title {
+    font-family: var(--otb-font-heading);
+    font-size: 2rem;
+    color: #fff;
+    letter-spacing: 3px;
+    text-shadow: 0 0 20px var(--game-accent-glow);
+}
+
+.otb-splash-subtitle {
+    font-family: var(--otb-font-body);
+    font-size: 0.85rem;
+    color: var(--otb-text-muted);
+    letter-spacing: 2px;
+}
+
+.otb-splash-loader {
+    width: 160px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.otb-splash-loader-fill {
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--game-accent), var(--otb-coin));
+    border-radius: 2px;
+    animation: otb-splash-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes otb-splash-pulse {
+    0%, 100% { width: 20%; margin-left: 0; }
+    50% { width: 60%; margin-left: 20%; }
+}
+
+/* ============ OTB ABOUT SECTION ============ */
+.otb-about {
+    text-align: center;
+    padding: 16px;
+    margin-top: 16px;
+    border-top: 1px solid var(--otb-border);
+}
+
+.otb-about-text {
+    font-family: var(--otb-font-body);
+    font-size: 0.7rem;
+    color: var(--otb-text-dim);
+}
+
+.otb-about-version {
+    font-family: var(--otb-font-body);
+    font-size: 0.6rem;
+    color: var(--otb-text-dim);
+    opacity: 0.6;
+    margin-top: 4px;
+}
+
+/* ============ OTB PARENT LOCK ============ */
+.otb-parent-lock {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.otb-parent-lock-text {
+    font-family: var(--otb-font-body);
+    font-size: 0.85rem;
+    color: var(--otb-text-muted);
+}
+
+.otb-parent-lock-math {
+    font-family: var(--otb-font-heading);
+    font-size: 1.3rem;
+    color: var(--otb-coin);
+}
+
+.otb-parent-lock-input {
+    font-family: var(--otb-font-body);
+    font-size: 1rem;
+    background: rgba(0, 0, 0, 0.4);
+    color: var(--otb-text);
+    border: 2px solid var(--otb-border);
+    border-radius: var(--otb-radius-sm);
+    padding: 10px;
+    width: 120px;
+    text-align: center;
+    outline: none;
+}
+
+.otb-parent-lock-input:focus {
+    border-color: var(--game-accent);
+}
+
+/* ============ SCREEN TRANSITIONS ============ */
+.otb-screen-enter {
+    animation: otb-screen-in 0.3s ease-out;
+}
+
+@keyframes otb-screen-in {
+    from { opacity: 0; transform: scale(0.97) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ============ SHARED HEADING STYLES ============ */
+.otb-heading {
+    font-family: var(--otb-font-heading);
+    color: var(--otb-text);
+}
+
+.otb-heading-accent {
+    font-family: var(--otb-font-heading);
+    color: var(--game-accent);
+}
+
+.otb-heading-gold {
+    font-family: var(--otb-font-heading);
+    color: var(--otb-coin);
+}
+
+.otb-body {
+    font-family: var(--otb-font-body);
+    color: var(--otb-text);
+}
+
+.otb-body-muted {
+    font-family: var(--otb-font-body);
+    color: var(--otb-text-muted);
+}

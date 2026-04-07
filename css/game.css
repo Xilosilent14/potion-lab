@@ -45,7 +45,9 @@ html, body {
 
 /* ============ SPLASH ============ */
 #screen-splash {
-  background: radial-gradient(ellipse at 50% 40%, #1a0a3e 0%, #0d0d2b 70%);
+  background:
+    linear-gradient(rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.55) 100%),
+    url('../assets/bg-splash.png') center/cover no-repeat;
   align-items: center;
   justify-content: center;
   flex-direction: column;
@@ -53,6 +55,7 @@ html, body {
 }
 
 .splash-stars {
+  display: none;
   position: absolute;
   inset: 0;
   background-image:
@@ -74,6 +77,7 @@ html, body {
 }
 
 .splash-moon {
+  display: none;
   position: absolute;
   top: 8%;
   right: 12%;
@@ -158,7 +162,9 @@ html, body {
 
 /* ============ MENU ============ */
 #screen-menu {
-  background: radial-gradient(ellipse at 50% 30%, #1a0a3e 0%, #0d0d2b 80%);
+  background:
+    linear-gradient(rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.6) 100%),
+    url('../assets/bg-splash.png') center/cover no-repeat;
   align-items: center;
   justify-content: center;
 }

@@ -12,6 +12,7 @@
     initEvents();
     showSplash();
     registerSW();
+    if (typeof OTBEcosystem !== 'undefined') OTBEcosystem.checkDailyStreak();
   });
 
   function registerSW() {
@@ -62,6 +63,7 @@
 
   /* ---- MENU ---- */
   function showMenu() {
+    PotionEngine.setMode('menu');
     showScreen('menu');
     renderMenuShelf();
     const name = PotionProgress.getPlayerName();
@@ -109,6 +111,10 @@
     game.wrongCount = 0;
     game.sessionPotions = [];
     game.streak = 0;
+
+    // Set the canvas room background to match the current potion's room
+    PotionEngine.setRoom((game.currentPotion.room || 1) - 1);
+    PotionEngine.setMode('game');
 
     showScreen('game');
     PotionEngine.resetCauldron(game.questionsNeeded);
@@ -575,6 +581,10 @@
     }
   }
 
+  function _ecoCategory(type) {
+    return ['count-1-5','count-6-10','count-dice','pattern','sort','more-less','size'].includes(type) ? 'math' : 'reading';
+  }
+
   function handleCorrect(btn, q, timeMs) {
     btn.classList.add('correct-flash');
     PotionAudio.playCorrect();
@@ -585,6 +595,7 @@
     game.streak++;
 
     PotionProgress.recordAnswer(q.conceptId, q.type, true, timeMs);
+    if (typeof OTBEcosystem !== 'undefined') OTBEcosystem.recordAnswer(q.type, _ecoCategory(q.type), true, timeMs, 'potion-lab');
     PotionEngine.zeroHappy();
     PotionEngine.addIngredient();
     PotionAudio.jackPraise();
@@ -618,6 +629,7 @@
     game.streak = 0;
 
     PotionProgress.recordAnswer(q.conceptId, q.type, false, timeMs);
+    if (typeof OTBEcosystem !== 'undefined') OTBEcosystem.recordAnswer(q.type, _ecoCategory(q.type), false, timeMs, 'potion-lab');
     PotionEngine.zeroSad();
     PotionAudio.jackWrongLine();
 
@@ -698,6 +710,7 @@
     const potion = game.currentPotion;
     PotionProgress.collectPotion(potion.id);
     game.sessionPotions.push(potion);
+    if (typeof OTBEcosystem !== 'undefined') { OTBEcosystem.addXP(25, 'potion-lab'); OTBEcosystem.addCoins(5, 'potion-lab'); }
 
     const newCount = PotionProgress.getPotionCount();
     setTimeout(() => {

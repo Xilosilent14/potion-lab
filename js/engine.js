@@ -12,6 +12,9 @@ const PotionEngine = (() => {
   let mode = 'menu';
   let currentRoom = 0;
 
+  // Background images: index 0 = splash/menu, 1-5 = rooms 1-5
+  const bgImages = new Array(6).fill(null);
+
   const particles = [];
   const stars = [];
   const wisps = [];
@@ -69,7 +72,24 @@ const PotionEngine = (() => {
     generateStars();
     generateWisps();
     positionCharacters();
+    preloadBgImages();
     loop();
+  }
+
+  function preloadBgImages() {
+    const paths = [
+      'assets/bg-splash.png',
+      'assets/bg-room1.png',
+      'assets/bg-room2.png',
+      'assets/bg-room3.png',
+      'assets/bg-room4.png',
+      'assets/bg-room5.png'
+    ];
+    paths.forEach((src, i) => {
+      const img = new Image();
+      img.src = src;
+      bgImages[i] = img;
+    });
   }
 
   function resize() {
@@ -192,8 +212,14 @@ const PotionEngine = (() => {
   function render() {
     ctx.clearRect(0, 0, W, H);
     drawBackground();
-    drawStars();
-    drawMoon();
+    // Only draw procedural stars/moon when the DALL-E image isn't showing
+    const imgIdx = (mode === 'menu') ? 0 : (currentRoom + 1);
+    const img = bgImages[imgIdx];
+    const imgReady = img && img.complete && img.naturalWidth > 0;
+    if (!imgReady) {
+      drawStars();
+      drawMoon();
+    }
     drawWisps();
     drawCauldron();
     if (flyIngredient) drawFlyIngredient();
@@ -206,31 +232,50 @@ const PotionEngine = (() => {
   function drawBackground() {
     const room = ROOMS[currentRoom] || ROOMS[0];
 
-    // Sky gradient
-    const grad = ctx.createRadialGradient(W * 0.45, H * 0.25, 0, W * 0.5, H * 0.35, W * 0.9);
-    grad.addColorStop(0, room.bg0);
-    grad.addColorStop(1, room.bg1);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
+    // Pick the right image: splash for menu mode, room image for game mode
+    const imgIdx = (mode === 'menu') ? 0 : (currentRoom + 1);
+    const img = bgImages[imgIdx];
+    const imgReady = img && img.complete && img.naturalWidth > 0;
 
-    // Room-specific background elements
-    switch (currentRoom) {
-      case 1: drawGraveyardElements(room); break;
-      case 2: drawTownElements(room);      break;
-      case 3: drawOogieLairElements(room); break;
-      case 4: drawTowerElements(room);     break;
-      default: drawLabElements(room);      break;
+    if (imgReady) {
+      // Cover-fit: fill canvas while maintaining aspect ratio
+      const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+      const iw = img.naturalWidth * scale;
+      const ih = img.naturalHeight * scale;
+      const ix = (W - iw) / 2;
+      const iy = (H - ih) / 2;
+      ctx.drawImage(img, ix, iy, iw, ih);
+
+      // Dark vignette at bottom for character/UI readability
+      const fog = ctx.createLinearGradient(0, H * 0.55, 0, H);
+      fog.addColorStop(0, 'rgba(0,0,0,0)');
+      fog.addColorStop(1, 'rgba(0,0,0,0.55)');
+      ctx.fillStyle = fog;
+      ctx.fillRect(0, H * 0.55, W, H * 0.45);
+    } else {
+      // Fallback: procedural background (while images load or if missing)
+      const grad = ctx.createRadialGradient(W * 0.45, H * 0.25, 0, W * 0.5, H * 0.35, W * 0.9);
+      grad.addColorStop(0, room.bg0);
+      grad.addColorStop(1, room.bg1);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      switch (currentRoom) {
+        case 1: drawGraveyardElements(room); break;
+        case 2: drawTownElements(room);      break;
+        case 3: drawOogieLairElements(room); break;
+        case 4: drawTowerElements(room);     break;
+        default: drawLabElements(room);      break;
+      }
+
+      drawSpiralHill(room.hillColor);
+
+      const fog = ctx.createLinearGradient(0, H * 0.68, 0, H);
+      fog.addColorStop(0, 'rgba(0,0,0,0)');
+      fog.addColorStop(1, room.fogColor + 'cc');
+      ctx.fillStyle = fog;
+      ctx.fillRect(0, H * 0.68, W, H * 0.32);
     }
-
-    // Spiral Hill (always present, room-colored)
-    drawSpiralHill(room.hillColor);
-
-    // Ground fog
-    const fog = ctx.createLinearGradient(0, H * 0.68, 0, H);
-    fog.addColorStop(0, 'rgba(0,0,0,0)');
-    fog.addColorStop(1, room.fogColor + 'cc');
-    ctx.fillStyle = fog;
-    ctx.fillRect(0, H * 0.68, W, H * 0.32);
   }
 
   function drawLabElements(room) {

@@ -1,5 +1,5 @@
 /* Jack's Potion Lab - Service Worker v1.0 */
-const CACHE = 'potion-lab-v3';
+const CACHE = 'potion-lab-v4';
 const ASSETS = [
   '/',
   '/index.html',
@@ -8,7 +8,13 @@ const ASSETS = [
   '/js/engine.js',
   '/js/audio.js',
   '/js/progress.js',
-  '/data/potions.js'
+  '/data/potions.js',
+  '/assets/bg-splash.png',
+  '/assets/bg-room1.png',
+  '/assets/bg-room2.png',
+  '/assets/bg-room3.png',
+  '/assets/bg-room4.png',
+  '/assets/bg-room5.png'
 ];
 
 self.addEventListener('install', e => {
