@@ -1148,3 +1148,117 @@ html, body {
   -webkit-user-select: none;
   -webkit-touch-callout: none;
 }
+
+/* ===== TABLET LANDSCAPE (1024x600 Fire tablet) ===== */
+@media (max-height: 650px) and (orientation: landscape) {
+    /* Splash */
+    .splash-title { font-size: 2.2rem; }
+    .splash-sub { font-size: 0.9rem; }
+    .splash-jack-silhouette { width: 50px; height: 100px; margin-bottom: 4px; }
+    .splash-moon { width: 60px; height: 60px; }
+
+    /* Menu */
+    .menu-logo { font-size: 2.2rem; }
+    .menu-title { font-size: 1.8rem; }
+    .menu-subtitle { font-size: 0.85rem; }
+    .menu-overlay { gap: 10px; padding: 12px; }
+
+    /* HUD */
+    .game-hud { padding: 4px 12px; }
+    .hud-potions { font-size: 0.8rem; padding: 3px 8px; }
+    .hud-streak { font-size: 0.9rem; }
+
+    /* Question area */
+    .question-area { padding: 6px 16px 4px; }
+    .question-prompt { font-size: 1.15rem; padding: 8px 20px; }
+
+    /* Ingredients - reduce size and spacing to fit with cauldron */
+    .ingredients-area { gap: 12px; padding: 4px 16px; padding-bottom: 160px; }
+    .ingredient-btn { width: 72px; height: 72px; font-size: 1.8rem; border-radius: 16px; }
+    .ingredient-label { font-size: 0.65rem; }
+    .opt-color { width: 78px; height: 78px; }
+    .opt-color-label { font-size: 0.7rem; }
+    .opt-letter { width: 74px; height: 74px; }
+    .opt-letter-char { font-size: 2.4rem; }
+    .opt-number { width: 70px; height: 70px; }
+    .opt-number-char { font-size: 2.2rem; }
+    .opt-shape { width: 76px; height: 76px; }
+    .opt-shape-icon { font-size: 2rem; }
+    .opt-shape-label { font-size: 0.65rem; }
+    .count-option-btn { width: 64px; height: 64px; font-size: 1.6rem; }
+    .count-display { font-size: 2.2rem; padding: 4px 16px; letter-spacing: 6px; }
+
+    /* Sally hint */
+    .sally-hint { bottom: 140px; }
+    .sally-bubble { font-size: 0.85rem; padding: 6px 12px; max-width: 160px; }
+
+    /* Wrong feedback */
+    .wrong-feedback { font-size: 1rem; padding: 8px 20px; }
+
+    /* Potion complete */
+    .potion-complete-icon { font-size: 3.5rem; }
+    .potion-complete-name { font-size: 1.8rem; }
+    .potion-complete-msg { font-size: 1rem; }
+    .potion-complete-wrap { gap: 8px; padding: 12px; }
+
+    /* Session complete */
+    .session-title { font-size: 2rem; }
+    .session-jack { font-size: 3rem; }
+    .session-msg { font-size: 1rem; }
+    .session-wrap { gap: 8px; padding: 12px; }
+
+    /* Shelf */
+    .shelf-header { padding: 8px 12px; }
+    .shelf-title { font-size: 1.2rem; }
+    .shelf-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; padding: 10px; }
+    .shelf-potion { padding: 8px 6px; min-height: 70px; }
+    .shelf-potion-icon { font-size: 1.6rem; }
+    .shelf-potion-name { font-size: 0.65rem; }
+
+    /* Modals */
+    .modal { padding: 18px; gap: 10px; }
+    .modal-title { font-size: 1.2rem; }
+    .modal-body { font-size: 0.85rem; }
+
+    /* Parent dashboard */
+    .modal-wide { max-height: 90vh; }
+    .dash-summary { gap: 6px; }
+    .dash-stat { padding: 6px 4px; }
+    .dash-stat-value { font-size: 1.4rem; }
+    .dash-stat-label { font-size: 0.65rem; }
+
+    /* Unlock modal */
+    .unlock-icon { font-size: 3rem; }
+    .unlock-title { font-size: 1.5rem; }
+    .unlock-body { font-size: 0.9rem; }
+
+    /* Settings */
+    .setting-row { font-size: 0.85rem; padding: 6px 0; }
+    .gate-question { font-size: 1.6rem; }
+}
+
+/* ===== LANDSCAPE LOCK HINT ===== */
+@media (orientation: portrait) {
+    body::before {
+        content: 'Please rotate your device for the best experience!';
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        background: #ff7518;
+        color: #fff;
+        text-align: center;
+        padding: 10px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        z-index: 9999;
+        font-family: 'Fredoka One', sans-serif;
+    }
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

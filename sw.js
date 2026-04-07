@@ -1,9 +1,12 @@
 /* Jack's Potion Lab - Service Worker v1.0 */
-const CACHE = 'potion-lab-v5';
+const CACHE = 'potion-lab-v6';
 const ASSETS = [
   '/',
   '/index.html',
+  '/css/shared/design-system.css',
   '/css/game.css',
+  '/js/otb-config.js',
+  '/js/ecosystem.js',
   '/js/main.js',
   '/js/engine.js',
   '/js/audio.js',

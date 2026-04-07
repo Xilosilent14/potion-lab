@@ -63,7 +63,7 @@
     <!-- HUD -->
     <div class="game-hud">
       <div class="hud-left">
-        <button class="hud-btn" id="btn-menu">🏠</button>
+        <button class="hud-btn" id="btn-menu" aria-label="Return to menu">🏠</button>
         <div class="hud-potions">
           <span id="hud-potion-icon">🧪</span>
           <span id="hud-potion-count">0 / 5</span>
@@ -72,28 +72,28 @@
       <div class="hud-center" id="hud-title">Jack's Potion Lab</div>
       <div class="hud-right">
         <div class="hud-streak" id="hud-streak"></div>
-        <button class="hud-btn" id="btn-settings-game">⚙️</button>
+        <button class="hud-btn" id="btn-settings-game" aria-label="Open settings">⚙️</button>
       </div>
     </div>
 
     <!-- Question area (top center) -->
     <div class="question-area" id="question-area">
-      <div class="question-prompt" id="question-prompt"></div>
+      <div class="question-prompt" id="question-prompt" aria-live="polite"></div>
     </div>
 
     <!-- Ingredient options -->
-    <div class="ingredients-area" id="ingredients-area"></div>
+    <div class="ingredients-area" id="ingredients-area" aria-live="polite"></div>
 
     <!-- Count display (for count questions) -->
     <div class="count-display" id="count-display" style="display:none;"></div>
 
     <!-- Sally hint -->
-    <div class="sally-hint" id="sally-hint" style="display:none;">
+    <div class="sally-hint" id="sally-hint" style="display:none;" aria-live="polite">
       <div class="sally-bubble" id="sally-bubble"></div>
     </div>
 
     <!-- Wrong answer feedback (Lock/Shock/Barrel) -->
-    <div class="wrong-feedback" id="wrong-feedback" style="display:none;">
+    <div class="wrong-feedback" id="wrong-feedback" style="display:none;" aria-live="assertive" role="alert">
       <span>Ha! Try again!</span>
     </div>
   </div>
@@ -113,7 +113,7 @@
   <!-- ===== SHELF (collection view) ===== -->
   <div id="screen-shelf" class="screen">
     <div class="shelf-header">
-      <button class="hud-btn" id="btn-shelf-back">← Back</button>
+      <button class="hud-btn" id="btn-shelf-back" aria-label="Back to menu">← Back</button>
       <h2 class="shelf-title">Jack's Shelf</h2>
       <p class="shelf-subtitle" id="shelf-count-label">0 of 24 potions collected</p>
     </div>
@@ -151,15 +151,15 @@
       <h2 class="modal-title">⚙️ Settings</h2>
       <div class="setting-row">
         <label>Music</label>
-        <button class="toggle-btn" id="toggle-music" data-on="true">ON</button>
+        <button class="toggle-btn" id="toggle-music" data-on="true" role="switch" aria-checked="true" aria-label="Toggle music">ON</button>
       </div>
       <div class="setting-row">
         <label>Sound Effects</label>
-        <button class="toggle-btn" id="toggle-sfx" data-on="true">ON</button>
+        <button class="toggle-btn" id="toggle-sfx" data-on="true" role="switch" aria-checked="true" aria-label="Toggle sound effects">ON</button>
       </div>
       <div class="setting-row">
         <label>Jack's Voice</label>
-        <button class="toggle-btn" id="toggle-tts" data-on="true">ON</button>
+        <button class="toggle-btn" id="toggle-tts" data-on="true" role="switch" aria-checked="true" aria-label="Toggle voice">ON</button>
       </div>
       <div class="setting-row">
         <label>Player Name</label>

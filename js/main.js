@@ -597,7 +597,7 @@
     game.streak++;
 
     PotionProgress.recordAnswer(q.conceptId, q.type, true, timeMs);
-    if (typeof OTBEcosystem !== 'undefined') OTBEcosystem.recordAnswer(q.type, _ecoCategory(q.type), true, timeMs, 'potion-lab');
+    if (typeof OTBEcosystem !== 'undefined') OTBEcosystem.recordAnswer(q.type, _ecoCategory(q.type), true, 0, 'potion-lab');
     PotionEngine.zeroHappy();
     PotionEngine.addIngredient();
     PotionAudio.jackPraise();
@@ -631,7 +631,7 @@
     game.streak = 0;
 
     PotionProgress.recordAnswer(q.conceptId, q.type, false, timeMs);
-    if (typeof OTBEcosystem !== 'undefined') OTBEcosystem.recordAnswer(q.type, _ecoCategory(q.type), false, timeMs, 'potion-lab');
+    if (typeof OTBEcosystem !== 'undefined') OTBEcosystem.recordAnswer(q.type, _ecoCategory(q.type), false, 0, 'potion-lab');
     PotionEngine.zeroSad();
     PotionAudio.jackWrongLine();
 
@@ -712,7 +712,7 @@
     const potion = game.currentPotion;
     PotionProgress.collectPotion(potion.id);
     game.sessionPotions.push(potion);
-    if (typeof OTBEcosystem !== 'undefined') { OTBEcosystem.addXP(25, 'potion-lab'); OTBEcosystem.addCoins(5, 'potion-lab'); }
+    if (typeof OTBEcosystem !== 'undefined') { OTBEcosystem.addXP(10, 'potion-lab'); OTBEcosystem.addCoins(5, 'potion-lab'); }
 
     const newCount = PotionProgress.getPotionCount();
     setTimeout(() => {
