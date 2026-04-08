@@ -715,10 +715,10 @@ const PotionEngine = (() => {
       ctx.beginPath();
       ctx.ellipse(0, 88, 26, 7, 0, 0, Math.PI * 2);
       ctx.fill();
-      // Draw sprite centered, scaled to ~160px tall
-      const sh = 160;
+      // Draw sprite centered, scaled to fit without overlapping answer buttons
+      const sh = 110;
       const sw = sh * (jackImg.naturalWidth / jackImg.naturalHeight);
-      ctx.drawImage(jackImg, -sw / 2, -sh / 2 - 10, sw, sh);
+      ctx.drawImage(jackImg, -sw / 2, -sh / 2, sw, sh);
       ctx.restore();
       return;
     }
@@ -1069,8 +1069,8 @@ const PotionEngine = (() => {
       ctx.beginPath();
       ctx.arc(0, 0, r * 2.5, 0, Math.PI * 2);
       ctx.fill();
-      // Draw sprite, scaled to ~80px tall
-      const sh = 80;
+      // Draw sprite, scaled to fit beside Jack
+      const sh = 55;
       const sw = sh * (zeroImg.naturalWidth / zeroImg.naturalHeight);
       ctx.drawImage(zeroImg, -sw / 2, -sh / 2, sw, sh);
       ctx.restore();
