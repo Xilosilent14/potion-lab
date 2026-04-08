@@ -25,7 +25,16 @@ const PotionEngine = (() => {
     { bg0: '#0a1a0a', bg1: '#050e05', hillColor: '#030a03', fogColor: '#0a1a0a', accent: '#90e890', name: 'Graveyard' },
     { bg0: '#1a0830', bg1: '#10061e', hillColor: '#080414', fogColor: '#1a0830', accent: '#ff9a40', name: 'Town' },
     { bg0: '#1c1400', bg1: '#0e0a00', hillColor: '#080600', fogColor: '#1c1400', accent: '#ffd700', name: "Oogie's" },
-    { bg0: '#0a0a2e', bg1: '#050518', hillColor: '#030310', fogColor: '#0a0a3e', accent: '#e8d5ff', name: 'Tower' }
+    { bg0: '#0a0a2e', bg1: '#050518', hillColor: '#030310', fogColor: '#0a0a3e', accent: '#e8d5ff', name: 'Tower' },
+    { bg0: '#0a1030', bg1: '#060820', hillColor: '#040612', fogColor: '#0a1030', accent: '#c084fc', name: "Sally's Garden" },
+    { bg0: '#1a0800', bg1: '#100500', hillColor: '#080300', fogColor: '#1a0800', accent: '#ff6b2b', name: 'Pumpkin Patch' },
+    { bg0: '#0e0a1e', bg1: '#080614', hillColor: '#04030a', fogColor: '#0e0a1e', accent: '#39ff14', name: 'Witches Kitchen' },
+    { bg0: '#0a0a1e', bg1: '#060614', hillColor: '#04040e', fogColor: '#0a0a2e', accent: '#d4a856', name: 'Clocktower' },
+    { bg0: '#0a1420', bg1: '#060e16', hillColor: '#040a10', fogColor: '#0a1a2e', accent: '#64d2ff', name: 'Haunted Library' },
+    { bg0: '#0e0820', bg1: '#080418', hillColor: '#060310', fogColor: '#0e0830', accent: '#c084fc', name: 'Crystal Cavern' },
+    { bg0: '#081408', bg1: '#040e04', hillColor: '#020a02', fogColor: '#081a08', accent: '#90e890', name: 'Enchanted Forest' },
+    { bg0: '#0a1020', bg1: '#060a18', hillColor: '#040610', fogColor: '#0a1028', accent: '#64ffb4', name: 'Ghost Ship' },
+    { bg0: '#0a0a28', bg1: '#06061c', hillColor: '#040410', fogColor: '#0a0a38', accent: '#ffd700', name: 'Observatory' }
   ];
 
   // Characters
@@ -83,7 +92,16 @@ const PotionEngine = (() => {
       'assets/bg-room2.png',
       'assets/bg-room3.png',
       'assets/bg-room4.png',
-      'assets/bg-room5.png'
+      'assets/bg-room5.png',
+      'assets/bg-room6.png',
+      'assets/bg-room7.png',
+      'assets/bg-room8.png',
+      'assets/bg-room9.png',
+      'assets/bg-room10.png',
+      'assets/bg-room11.png',
+      'assets/bg-room12.png',
+      'assets/bg-room13.png',
+      'assets/bg-room14.png'
     ];
     paths.forEach((src, i) => {
       const img = new Image();

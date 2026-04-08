@@ -17,7 +17,16 @@ const ASSETS = [
   '/assets/bg-room2.png',
   '/assets/bg-room3.png',
   '/assets/bg-room4.png',
-  '/assets/bg-room5.png'
+  '/assets/bg-room5.png',
+  '/assets/bg-room6.png',
+  '/assets/bg-room7.png',
+  '/assets/bg-room8.png',
+  '/assets/bg-room9.png',
+  '/assets/bg-room10.png',
+  '/assets/bg-room11.png',
+  '/assets/bg-room12.png',
+  '/assets/bg-room13.png',
+  '/assets/bg-room14.png'
 ];
 
 self.addEventListener('install', e => {

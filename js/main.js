@@ -130,9 +130,9 @@
     game.streak = 0;
 
     // Set the canvas room background and music to match the current potion's room
-    // Cycle through 5 visual themes for rooms beyond 5
+    // Each room now has its own unique DALL-E background
     const roomIdx = (game.currentPotion.room || 1) - 1;
-    PotionEngine.setRoom(roomIdx % 5);
+    PotionEngine.setRoom(roomIdx);
     PotionAudio.setRoomMusic(roomIdx % 5);
     PotionEngine.setMode('game');
 
@@ -1881,7 +1881,7 @@
 
     // Update room background/music when room changes
     const roomIdx = (game.currentPotion.room || 1) - 1;
-    PotionEngine.setRoom(roomIdx % 5); // cycle through 5 visual themes
+    PotionEngine.setRoom(roomIdx);
     PotionAudio.setRoomMusic(roomIdx % 5);
 
     showScreen('game');
