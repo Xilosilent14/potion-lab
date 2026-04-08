@@ -9,7 +9,7 @@ const OTBConfig = (() => {
 
     // Production URLs (bbgaming.shutterbuzzent.com sub-paths)
     const PRODUCTION_URLS = {
-        hub: 'https://bbgaming.shutterbuzzent.com',
+        hub: 'https://bbgaming.shutterbuzzent.com#home',
         'think-fast': 'https://bbgaming.shutterbuzzent.com/thinkfast',
         'word-mine': 'https://bbgaming.shutterbuzzent.com/wordmine',
         'rhythm-blast': 'https://bbgaming.shutterbuzzent.com/rhythmblast',
@@ -20,7 +20,7 @@ const OTBConfig = (() => {
 
     // Local dev URLs
     const LOCAL_URLS = {
-        hub: 'http://localhost:8082',
+        hub: 'http://localhost:8082#home',
         'think-fast': 'http://localhost:8080',
         'word-mine': 'http://localhost:8081',
         'rhythm-blast': 'http://localhost:8083',
