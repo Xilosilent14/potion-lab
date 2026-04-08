@@ -1800,6 +1800,11 @@
       }
     });
 
+    on('btn-potion-home', 'click', () => {
+      PotionEngine.setMode('menu');
+      showScreen('menu');
+    });
+
     // Session complete
     on('btn-keep-going', 'click', () => startGame());
     on('btn-session-menu', 'click', () => showMenu());
