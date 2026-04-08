@@ -85,6 +85,12 @@ const PotionEngine = (() => {
     loop();
   }
 
+  // Character sprites (DALL-E art replacing procedural drawing)
+  const jackImg = new Image();
+  jackImg.src = 'assets/jack-sprite.png';
+  const zeroImg = new Image();
+  zeroImg.src = 'assets/zero-sprite.png';
+
   function preloadBgImages() {
     const paths = [
       'assets/bg-splash.png',
@@ -699,11 +705,29 @@ const PotionEngine = (() => {
     const celebrate = jack.state === 'celebrate';
     const scale = celebrate ? 1.1 : 1;
 
+    // Use DALL-E sprite if loaded
+    if (jackImg.complete && jackImg.naturalWidth > 0) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      // Draw shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      ctx.beginPath();
+      ctx.ellipse(0, 88, 26, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Draw sprite centered, scaled to ~160px tall
+      const sh = 160;
+      const sw = sh * (jackImg.naturalWidth / jackImg.naturalHeight);
+      ctx.drawImage(jackImg, -sw / 2, -sh / 2 - 10, sw, sh);
+      ctx.restore();
+      return;
+    }
+
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale, scale);
 
-    // Ground shadow
+    // Ground shadow (procedural fallback)
     ctx.fillStyle = 'rgba(0,0,0,0.22)';
     ctx.beginPath();
     ctx.ellipse(0, 88, 26, 7, 0, 0, Math.PI * 2);
@@ -1036,10 +1060,27 @@ const PotionEngine = (() => {
     const y = zero.y + Math.sin(zero.bobAngle) * 10;
     const r = zero.r;
 
+    // Use DALL-E sprite if loaded
+    if (zeroImg.complete && zeroImg.naturalWidth > 0) {
+      ctx.save();
+      ctx.translate(x, y);
+      // Gentle glow behind Zero
+      ctx.fillStyle = `rgba(255,160,50,${zero.noseGlow * 0.15})`;
+      ctx.beginPath();
+      ctx.arc(0, 0, r * 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Draw sprite, scaled to ~80px tall
+      const sh = 80;
+      const sw = sh * (zeroImg.naturalWidth / zeroImg.naturalHeight);
+      ctx.drawImage(zeroImg, -sw / 2, -sh / 2, sw, sh);
+      ctx.restore();
+      return;
+    }
+
     ctx.save();
     ctx.translate(x, y);
 
-    // Outer ethereal glow
+    // Outer ethereal glow (procedural fallback)
     const outerGlow = ctx.createRadialGradient(0, 0, r * 0.6, 0, 0, r * 3);
     outerGlow.addColorStop(0, `rgba(220,210,255,${zero.noseGlow * 0.18})`);
     outerGlow.addColorStop(1, 'rgba(220,210,255,0)');
