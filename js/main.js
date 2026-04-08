@@ -1901,3 +1901,13 @@
   }
 
 })();
+
+
+// Global error handler - catch runtime errors gracefully
+window.onerror = function(msg, source, line, col, error) {
+    console.error("Runtime error:", msg, "at", source, line + ":" + col);
+    return false;
+};
+window.addEventListener("unhandledrejection", function(event) {
+    console.error("Unhandled promise rejection:", event.reason);
+});
