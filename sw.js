@@ -1,5 +1,5 @@
 /* Jack's Potion Lab - Service Worker v1.0 */
-const CACHE = 'potion-lab-v7';
+const CACHE = 'potion-lab-v8';
 const ASSETS = [
   '/',
   '/index.html',
@@ -26,7 +26,19 @@ const ASSETS = [
   '/assets/bg-room11.png',
   '/assets/bg-room12.png',
   '/assets/bg-room13.png',
-  '/assets/bg-room14.png'
+  '/assets/bg-room14.png',
+  './assets/sounds/sfx/click.mp3',
+  './assets/sounds/sfx/correct.mp3',
+  './assets/sounds/sfx/wrong.mp3',
+  './assets/sounds/sfx/coin.mp3',
+  './assets/sounds/sfx/star.mp3',
+  './assets/sounds/sfx/streak.mp3',
+  './assets/sounds/sfx/victory.mp3',
+  './assets/sounds/sfx/pickup.mp3',
+  './assets/sounds/sfx/cauldron-bubble.mp3',
+  './assets/sounds/sfx/cauldron-erupt.mp3',
+  './assets/sounds/sfx/potion-complete.mp3',
+  './assets/sounds/sfx/zero-yip.mp3'
 ];
 
 self.addEventListener('install', e => {

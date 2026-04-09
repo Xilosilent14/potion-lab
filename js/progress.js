@@ -5,7 +5,7 @@ const PotionProgress = (() => {
 
   const defaults = () => ({
     version: 1,
-    playerName: 'Asher',
+    playerName: '',
     potionsCollected: [],    // array of potion IDs
     totalPotions: 0,
     sessionPotions: 0,
@@ -161,11 +161,23 @@ const PotionProgress = (() => {
     save();
   }
 
-  function getPlayerName() { return get().playerName || 'Asher'; }
+  function getPlayerName() {
+    // Check shared BBG profile first (ProfileManager active profile)
+    try {
+      const activeId = localStorage.getItem('bbg_active_profile');
+      if (activeId) {
+        const profileData = JSON.parse(localStorage.getItem('bbg_profile_' + activeId) || '{}');
+        if (profileData.playerName) return profileData.playerName;
+      }
+      const shared = JSON.parse(localStorage.getItem('bbg_shared_profile') || '{}');
+      if (shared.playerName) return shared.playerName;
+    } catch (_) {}
+    return get().playerName || 'Player';
+  }
 
   function setPlayerName(name) {
     const s = get();
-    s.playerName = name || 'Asher';
+    s.playerName = name || 'Player';
     save();
   }
 

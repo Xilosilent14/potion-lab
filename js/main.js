@@ -1412,6 +1412,9 @@
   /* ---- SESSION COMPLETE ---- */
   function showSessionComplete() {
     showScreen('session');
+    const sessionTitle = document.getElementById('session-title');
+    const name = PotionProgress.getPlayerName();
+    if (sessionTitle) sessionTitle.textContent = name ? `Amazing, ${name}!` : 'Amazing!';
     const msg = document.getElementById('session-msg');
     const potions = document.getElementById('session-potions');
     const total = PotionProgress.getPotionCount();
@@ -1646,6 +1649,9 @@
     const modal = document.getElementById('parent-dashboard');
     if (!modal) return;
     modal.style.display = 'flex';
+    const dashTitle = document.getElementById('dash-title');
+    const name = PotionProgress.getPlayerName();
+    if (dashTitle) dashTitle.textContent = name ? `📊 ${name}'s Progress` : '📊 Progress';
     renderDashboard();
   }
 

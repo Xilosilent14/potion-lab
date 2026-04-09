@@ -30,9 +30,53 @@ const PotionAudio = (() => {
     sfxGain.connect(masterGain);
   }
 
+  // MP3 sound effect cache
+  const _mp3Cache = {};
+  let _mp3Loaded = false;
+  function _loadMP3Assets() {
+    if (_mp3Loaded) return;
+    _mp3Loaded = true;
+    ensureContext();
+    const manifest = [
+      { key: 'click', src: 'assets/sounds/sfx/click.mp3' },
+      { key: 'correct', src: 'assets/sounds/sfx/correct.mp3' },
+      { key: 'wrong', src: 'assets/sounds/sfx/wrong.mp3' },
+      { key: 'coin', src: 'assets/sounds/sfx/coin.mp3' },
+      { key: 'star', src: 'assets/sounds/sfx/star.mp3' },
+      { key: 'streak', src: 'assets/sounds/sfx/streak.mp3' },
+      { key: 'victory', src: 'assets/sounds/sfx/victory.mp3' },
+      { key: 'pickup', src: 'assets/sounds/sfx/pickup.mp3' },
+      { key: 'cauldron-bubble', src: 'assets/sounds/sfx/cauldron-bubble.mp3' },
+      { key: 'cauldron-erupt', src: 'assets/sounds/sfx/cauldron-erupt.mp3' },
+      { key: 'potion-complete', src: 'assets/sounds/sfx/potion-complete.mp3' },
+      { key: 'zero-yip', src: 'assets/sounds/sfx/zero-yip.mp3' }
+    ];
+    manifest.forEach(({ key, src }) => {
+      fetch(src)
+        .then(r => { if (!r.ok) throw new Error(); return r.arrayBuffer(); })
+        .then(buf => ctx.decodeAudioData(buf))
+        .then(decoded => { _mp3Cache[key] = decoded; })
+        .catch(() => {});
+    });
+  }
+  function _playMP3(key, volume = 0.5) {
+    const buf = _mp3Cache[key];
+    if (!buf) return false;
+    if (!sfxEnabled) return true;
+    const source = ctx.createBufferSource();
+    source.buffer = buf;
+    const gain = ctx.createGain();
+    gain.gain.value = volume;
+    source.connect(gain);
+    gain.connect(sfxGain);
+    source.start(0);
+    return true;
+  }
+
   let _ttsWarmedUp = false;
   function resume() {
     if (ctx && ctx.state === 'suspended') ctx.resume();
+    _loadMP3Assets();
     // Warm up TTS on first resume (user gesture)
     if (!_ttsWarmedUp && window.speechSynthesis) {
       _ttsWarmedUp = true;
@@ -404,6 +448,7 @@ const PotionAudio = (() => {
 
   /* ---- SFX ---- */
   function playCorrect() {
+    if (_playMP3('correct', 0.5)) return;
     if (!sfxEnabled) return;
     ensureContext(); resume();
     // Bright sparkle arpeggio: C5 E5 G5 C6
@@ -423,6 +468,7 @@ const PotionAudio = (() => {
   }
 
   function playWrong() {
+    if (_playMP3('wrong', 0.4)) return;
     if (!sfxEnabled) return;
     ensureContext(); resume();
     // Soft boing (not harsh)
@@ -440,6 +486,7 @@ const PotionAudio = (() => {
   }
 
   function playPickup() {
+    if (_playMP3('pickup', 0.5)) return;
     if (!sfxEnabled) return;
     ensureContext(); resume();
     // Satisfying pluck
@@ -457,6 +504,7 @@ const PotionAudio = (() => {
   }
 
   function playCauldronBubble() {
+    if (_playMP3('cauldron-bubble', 0.5)) return;
     if (!sfxEnabled) return;
     ensureContext(); resume();
     // Low bubble pop
@@ -474,6 +522,7 @@ const PotionAudio = (() => {
   }
 
   function playCauldronErupt() {
+    if (_playMP3('cauldron-erupt', 0.5)) return;
     if (!sfxEnabled) return;
     ensureContext(); resume();
     // Ascending whomp sweep
@@ -494,6 +543,7 @@ const PotionAudio = (() => {
   }
 
   function playPotionComplete() {
+    if (_playMP3('potion-complete', 0.5)) return;
     if (!sfxEnabled) return;
     ensureContext(); resume();
     // Triumphant 4-note sting: Am → C → E → A
@@ -514,6 +564,7 @@ const PotionAudio = (() => {
   }
 
   function playZeroYip() {
+    if (_playMP3('zero-yip', 0.5)) return;
     if (!sfxEnabled) return;
     ensureContext(); resume();
     // Quick ghost dog yip
@@ -533,6 +584,7 @@ const PotionAudio = (() => {
   }
 
   function playStreak(level) {
+    if (_playMP3('streak', 0.5)) return;
     if (!sfxEnabled) return;
     ensureContext(); resume();
     // Gets more exciting with streak level (1-5)
