@@ -1334,3 +1334,21 @@ html, body {
         transition-duration: 0.01ms !important;
     }
 }
+
+/* === Fire tablet touch target minimums (48px for ages 3-6) === */
+.btn-play,
+.btn-secondary,
+.btn-danger,
+.ingredient-btn,
+.count-option-btn,
+.opt-color,
+.opt-letter,
+.opt-number,
+.opt-shape,
+.opt-word,
+.room-card,
+.potion-slot,
+[role="button"] {
+    min-height: 48px;
+    min-width: 48px;
+}
