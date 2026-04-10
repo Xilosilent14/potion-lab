@@ -1,5 +1,5 @@
 /* Jack's Potion Lab - Service Worker v1.0 */
-const CACHE = 'potion-lab-v9';
+const CACHE = 'potion-lab-v10';
 const ASSETS = [
   '/',
   '/index.html',
@@ -57,6 +57,7 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+// Always fetch version.json from network (auto-update check)    if (e.request.url.includes('version.json') || e.request.url.includes('auto-update.js')) return;
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
       if (res.ok) {
