@@ -10,8 +10,16 @@
  * OTBEcosystem methods alongside your game-specific progress tracking.
  */
 const OTBEcosystem = (() => {
-    const PROFILE_KEY = 'bbg_shared_profile';
     const VERSION = 1;
+
+    // Resolve the correct profile key: active player profile or legacy shared
+    function _getProfileKey() {
+        const activeId = localStorage.getItem('bbg_active_profile');
+        if (activeId) return 'bbg_profile_' + activeId;
+        return 'bbg_shared_profile';
+    }
+    // Keep for backward compat — but _load() now uses _getProfileKey()
+    const PROFILE_KEY = 'bbg_shared_profile';
 
     // XP curve: each level requires more XP
     const XP_PER_LEVEL = 100;
@@ -43,7 +51,8 @@ const OTBEcosystem = (() => {
             localStorage.setItem('bbg_shared_profile', localStorage.getItem('otb_shared_profile'));
         }
         try {
-            const raw = localStorage.getItem(PROFILE_KEY);
+            const key = _getProfileKey();
+            const raw = localStorage.getItem(key);
             if (!raw) return _getDefault();
             const data = JSON.parse(raw);
             // Merge with defaults for forward compat
@@ -56,8 +65,9 @@ const OTBEcosystem = (() => {
 
     function _save(profile) {
         try {
+            const key = _getProfileKey();
             profile.updatedAt = Date.now();
-            localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+            localStorage.setItem(key, JSON.stringify(profile));
         } catch (e) {
             console.warn('[BBG Ecosystem] Failed to save profile:', e);
         }
