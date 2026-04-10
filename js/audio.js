@@ -611,54 +611,26 @@ const PotionAudio = (() => {
   // Jack-style voice: deep, theatrical, warm
   // Uses Web Speech API — works on Chrome/Silk, falls back silently
   function jackSpeak(text, onEnd) {
-    if (!ttsEnabled || !window.speechSynthesis) {
+    if (!ttsEnabled) {
       if (onEnd) onEnd();
       return;
     }
-    // Cancel any in-progress speech
+    // Use Google Cloud TTS (works on Silk, no speechSynthesis needed)
+    if (typeof CloudTTS !== 'undefined') {
+      CloudTTS.speakJack(text, { onEnd: onEnd });
+      return;
+    }
+    // Legacy fallback to speechSynthesis
+    if (!window.speechSynthesis) { if (onEnd) onEnd(); return; }
     window.speechSynthesis.cancel();
-
     const utter = new SpeechSynthesisUtterance(text);
-    currentUtterance = utter;
-
-    // Pick the best available voice: deep male preferred
-    // Includes Android/Fire tablet voices for Silk browser
-    const voices = window.speechSynthesis.getVoices();
-    const en = voices.filter(v => /^en[-_]/i.test(v.lang));
-    const maleNames = [
-      'Google UK English Male', 'Daniel', 'David', 'Alex',
-      'Microsoft Mark',         // Windows — male US English
-      'en-us-x-iom-local',     // Android/Fire — male (deeper)
-      'en-gb-x-rjs-local',     // Android/Fire — British male
-      'en-us-x-iom-network',   // Android/Fire — male (network)
-      'English United Kingdom', // Android/Silk — often male variant
-    ];
-    let preferred = null;
-    for (const name of maleNames) {
-      const match = en.find(v => (v.name + v.lang).toLowerCase().includes(name.toLowerCase()));
-      if (match) { preferred = match; break; }
-    }
-    if (!preferred) {
-      preferred = en.find(v => /male/i.test(v.name))
-        || en.find(v => v.localService)
-        || en[0] || voices[0];
-    }
-
-    if (preferred) utter.voice = preferred;
-
-    // Jack's theatrical delivery (pitch reduced slightly for Fire/Silk naturalness)
-    utter.pitch  = 0.8;    // deep, spooky
-    utter.rate   = 0.88;   // measured, deliberate
-    utter.volume = 0.9;
-
+    utter.pitch = 0.8; utter.rate = 0.88; utter.volume = 0.9;
     if (onEnd) utter.onend = onEnd;
     utter.onerror = () => { if (onEnd) onEnd(); };
     window.speechSynthesis.speak(utter);
-
-    // Retry if speech engine fails to start (common on Fire/Android)
     setTimeout(() => {
       if (window.speechSynthesis && !window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
-        try { window.speechSynthesis.speak(utter); } catch (e) { /* ignore */ }
+        try { window.speechSynthesis.speak(utter); } catch (e) {}
       }
     }, 250);
   }
