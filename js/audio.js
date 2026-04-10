@@ -663,21 +663,50 @@ const PotionAudio = (() => {
     }, 250);
   }
 
+  // Pre-generated Jack TTS (Google Cloud Neural voice)
+  const _jackTTSCache = {};
+  const _jackTTSPending = new Set();
+  function _tryJackTTS(filename, volume = 0.8) {
+    if (_jackTTSCache[filename]) {
+      if (!ttsEnabled) return true;
+      ensureContext();
+      const source = ctx.createBufferSource();
+      source.buffer = _jackTTSCache[filename];
+      const gain = ctx.createGain();
+      gain.gain.value = volume;
+      source.connect(gain);
+      gain.connect(sfxGain);
+      source.start(0);
+      return true;
+    }
+    if (!_jackTTSPending.has(filename)) {
+      _jackTTSPending.add(filename);
+      ensureContext();
+      fetch(`assets/sounds/tts/${filename}`)
+        .then(r => { if (!r.ok) throw new Error(); return r.arrayBuffer(); })
+        .then(b => ctx.decodeAudioData(b))
+        .then(decoded => { _jackTTSCache[filename] = decoded; })
+        .catch(() => {});
+    }
+    return false;
+  }
+
   // Short praise lines Jack says after correct answers
   const JACK_PRAISE = [
-    'Magnificent!',
-    'Splendid work!',
-    'Most excellent!',
-    'How wonderful!',
-    'Yes! Perfect!',
-    'Extraordinary!',
-    'Well done!',
-    'You are brilliant!',
+    { text: 'Magnificent!', file: 'praise-magnificent' },
+    { text: 'Splendid work!', file: 'praise-splendid-work' },
+    { text: 'Most excellent!', file: 'praise-most-excellent' },
+    { text: 'How wonderful!', file: 'praise-how-wonderful' },
+    { text: 'Yes! Perfect!', file: 'praise-yes-perfect' },
+    { text: 'Extraordinary!', file: 'praise-extraordinary' },
+    { text: 'Well done!', file: 'praise-well-done' },
+    { text: 'You are brilliant!', file: 'praise-you-are-brilliant' },
   ];
 
   function jackPraise() {
-    const line = JACK_PRAISE[Math.floor(Math.random() * JACK_PRAISE.length)];
-    jackSpeak(line);
+    const item = JACK_PRAISE[Math.floor(Math.random() * JACK_PRAISE.length)];
+    if (_tryJackTTS(item.file + '.mp3', 0.8)) return;
+    jackSpeak(item.text);
   }
 
   // Potion complete announcement
@@ -685,15 +714,18 @@ const PotionAudio = (() => {
     jackSpeak(`We brewed it! The ${potionName}! How magnificent!`);
   }
 
-  // Wrong answer — Oogie/Lock-Shock-Barrel style
+  // Wrong answer lines
+  const JACK_WRONG = [
+    { text: 'Oops! Try again!', file: 'wrong-oops-try-again' },
+    { text: 'Hmm, not quite!', file: 'wrong-hmm-not-quite' },
+    { text: 'Look carefully!', file: 'wrong-look-carefully' },
+    { text: 'Almost! Look again!', file: 'wrong-almost-look-again' },
+  ];
+
   function jackWrongLine() {
-    const lines = [
-      'Oops! Try again!',
-      'Hmm, not quite!',
-      'Look carefully!',
-      'Almost! Look again!',
-    ];
-    jackSpeak(lines[Math.floor(Math.random() * lines.length)]);
+    const item = JACK_WRONG[Math.floor(Math.random() * JACK_WRONG.length)];
+    if (_tryJackTTS(item.file + '.mp3', 0.8)) return;
+    jackSpeak(item.text);
   }
 
   function setTts(on) { ttsEnabled = on; if (!on && window.speechSynthesis) window.speechSynthesis.cancel(); }
