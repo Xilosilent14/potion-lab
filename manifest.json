@@ -3,7 +3,7 @@
   "short_name": "PotionLab",
   "description": "Brew magical potions with Jack Skellington!",
   "start_url": "/",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "landscape",
   "background_color": "#0d0d2b",
   "theme_color": "#ff7518",
