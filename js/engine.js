@@ -713,10 +713,10 @@ const PotionEngine = (() => {
       // Draw shadow
       ctx.fillStyle = 'rgba(0,0,0,0.22)';
       ctx.beginPath();
-      ctx.ellipse(0, 88, 26, 7, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 170, 44, 12, 0, 0, Math.PI * 2);
       ctx.fill();
-      // Draw sprite centered, scaled to fit without overlapping answer buttons
-      const sh = 110;
+      // Draw sprite centered, 2x size for visibility
+      const sh = 220;
       const sw = sh * (jackImg.naturalWidth / jackImg.naturalHeight);
       ctx.drawImage(jackImg, -sw / 2, -sh / 2, sw, sh);
       ctx.restore();
@@ -730,7 +730,7 @@ const PotionEngine = (() => {
     // Ground shadow (procedural fallback)
     ctx.fillStyle = 'rgba(0,0,0,0.22)';
     ctx.beginPath();
-    ctx.ellipse(0, 88, 26, 7, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 170, 44, 12, 0, 0, Math.PI * 2);
     ctx.fill();
 
     /* ====  LEGS (drawn behind body) ==== */
@@ -1069,8 +1069,8 @@ const PotionEngine = (() => {
       ctx.beginPath();
       ctx.arc(0, 0, r * 2.5, 0, Math.PI * 2);
       ctx.fill();
-      // Draw sprite, scaled to fit beside Jack
-      const sh = 55;
+      // Draw sprite, 2x size for visibility
+      const sh = 110;
       const sw = sh * (zeroImg.naturalWidth / zeroImg.naturalHeight);
       ctx.drawImage(zeroImg, -sw / 2, -sh / 2, sw, sh);
       ctx.restore();
