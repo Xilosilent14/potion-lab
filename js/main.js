@@ -1945,3 +1945,60 @@ window.onerror = function(msg, source, line, col, error) {
 window.addEventListener("unhandledrejection", function(event) {
     console.error("Unhandled promise rejection:", event.reason);
 });
+
+// ===========================================================
+// PWA: Service Worker + Install Prompt
+// Moved from index.html inline script to satisfy CSP script-src 'self'
+// ===========================================================
+(function _pwaInit() {
+    if ('serviceWorker' in navigator) {
+        try {
+            var swPath = (typeof OTBConfig !== 'undefined' && !OTBConfig.isLocal) ? '/sw.js' : 'sw.js';
+            navigator.serviceWorker.register(swPath).catch(function() {});
+        } catch (e) {}
+    }
+    setTimeout(function() {
+        try {
+            if (typeof OTBConfig !== 'undefined') {
+                var u = OTBConfig.getHubUrl();
+                var logoLink = document.getElementById('bbg-logo-link');
+                if (logoLink) logoLink.href = u;
+                // Wire hub home button
+                var hubBtn = document.getElementById('btn-hub-home');
+                if (hubBtn) {
+                    hubBtn.style.display = '';
+                    hubBtn.addEventListener('click', function() {
+                        try { window.location.href = u; } catch (e) {}
+                    });
+                }
+            }
+        } catch (e) {}
+    }, 0);
+    var _deferredInstall = null;
+    window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        _deferredInstall = e;
+        try {
+            var banner = document.getElementById('pwa-install-banner');
+            if (banner) banner.style.display = 'flex';
+        } catch (e) {}
+    });
+    try {
+        var banner = document.getElementById('pwa-install-banner');
+        if (banner) {
+            var btns = banner.querySelectorAll('button');
+            if (btns[0]) btns[0].addEventListener('click', function() {
+                if (_deferredInstall) {
+                    _deferredInstall.prompt();
+                    _deferredInstall.userChoice.then(function() {
+                        _deferredInstall = null;
+                        banner.style.display = 'none';
+                    });
+                }
+            });
+            if (btns[1]) btns[1].addEventListener('click', function() {
+                banner.style.display = 'none';
+            });
+        }
+    } catch (e) {}
+})();
