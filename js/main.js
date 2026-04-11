@@ -8,8 +8,13 @@
 */
 
 (() => {
+  let gamePaused = false;
+
   /* ---- Boot ---- */
   document.addEventListener('DOMContentLoaded', () => {
+    // Set BBG logo to hub URL
+    if(typeof OTBConfig!=='undefined'){const u=OTBConfig.getHubUrl();const l=document.getElementById('bbg-logo-link');if(l)l.href=u;}
+
     PotionProgress.load();
     applySettings();
     initCanvases();
@@ -57,6 +62,17 @@
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const el = document.getElementById('screen-' + id);
     if (el) el.classList.add('active');
+  }
+
+  /* ---- Pause System ---- */
+  function _pauseGame() {
+    gamePaused = true;
+    document.getElementById('game-pause-overlay').classList.add('active');
+  }
+
+  function _resumeGame() {
+    gamePaused = false;
+    document.getElementById('game-pause-overlay').classList.remove('active');
   }
 
   /* ---- SPLASH ---- */
@@ -1794,7 +1810,19 @@
 
     // Game HUD
     on('btn-menu', 'click', () => openParentalGate(() => showMenu()));
+    on('btn-pause', 'click', () => _pauseGame());
+    on('btn-pause-resume', 'click', () => _resumeGame());
+    on('btn-pause-quit', 'click', () => {
+      _resumeGame();
+      openParentalGate(() => showMenu());
+    });
     on('btn-settings-game', 'click', () => openSettings());
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && PotionEngine.getMode() === 'game' && !gamePaused) {
+        _pauseGame();
+      }
+    });
 
     // Potion complete
     on('btn-next-potion', 'click', () => {

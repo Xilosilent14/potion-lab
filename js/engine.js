@@ -1263,6 +1263,7 @@ const PotionEngine = (() => {
 
   /* ---- Public API ---- */
   function setMode(m) { mode = m; }
+  function getMode() { return mode; }
 
   function setRoom(n) {
     currentRoom = Math.max(0, Math.min(ROOMS.length - 1, n));
@@ -1368,7 +1369,7 @@ const PotionEngine = (() => {
   }
 
   return {
-    init, resize, stop, setMode, setRoom,
+    init, resize, stop, setMode, getMode, setRoom,
     jackTalk, jackCelebrate, jackHint,
     zeroHappy, zeroTrick, zeroSad,
     flyIngredientTo, addIngredient, resetCauldron, eruptCauldron,

@@ -35,7 +35,7 @@
   <div id="screen-menu" class="screen">
     <canvas id="menu-canvas"></canvas>
     <div class="otb-badge" style="position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:15;">Blake Boys Gaming</div>
-    <a id="bbg-logo-link" href="/" class="bbg-corner-logo-link" aria-label="Return to Hub"><img src="assets/bbg-logo.png" alt="BBG" class="bbg-corner-logo"></a>
+    <a id="bbg-logo-link" href="#" class="bbg-corner-logo-link" aria-label="Return to Hub"><img src="assets/bbg-logo.png" alt="BBG" class="bbg-corner-logo"></a>
     <div class="menu-overlay">
       <div class="menu-brand">
         <span class="menu-logo">🧪</span>
@@ -83,7 +83,17 @@
       </div>
       <div class="hud-right">
         <div class="hud-streak" id="hud-streak"></div>
+        <button class="hud-btn" id="btn-pause" aria-label="Pause game">⏸</button>
         <button class="hud-btn" id="btn-settings-game" aria-label="Open settings">⚙️</button>
+      </div>
+    </div>
+
+    <!-- Pause overlay -->
+    <div class="pause-overlay" id="game-pause-overlay">
+      <div class="pause-box">
+        <h2>⏸ Paused</h2>
+        <button class="menu-btn" id="btn-pause-resume" style="font-size:1.1rem;">▶ Resume</button>
+        <button class="menu-btn" id="btn-pause-quit" style="font-size:0.9rem;background:rgba(255,255,255,0.1);">🏠 Back to Menu</button>
       </div>
     </div>
 
@@ -231,7 +241,7 @@
   <script src="js/achievements.js"></script>
   <script src="js/main.js"></script>
   <script>
-    if(typeof OTBConfig!=='undefined'){const u=OTBConfig.getHubUrl();const l=document.getElementById('bbg-logo-link');if(l)l.href=u;}
+    setTimeout(()=>{if(typeof OTBConfig!=='undefined'){const u=OTBConfig.getHubUrl();const l=document.getElementById('bbg-logo-link');if(l)l.href=u;}},0);
     if('serviceWorker' in navigator) {
         const swPath = (typeof OTBConfig !== 'undefined' && !OTBConfig.isLocal) ? '/sw.js' : 'sw.js';
         navigator.serviceWorker.register(swPath).catch(() => {});

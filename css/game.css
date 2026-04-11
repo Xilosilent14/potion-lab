@@ -380,6 +380,40 @@ html, body {
   text-align: center;
 }
 
+/* ============ PAUSE OVERLAY ============ */
+.pause-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  z-index: 60;
+  justify-content: center;
+  align-items: center;
+}
+.pause-overlay.active { display: flex; }
+.pause-box {
+  background: linear-gradient(135deg, #1a0a2e, #2d1b4e);
+  border: 3px solid var(--game-accent, #ff7518);
+  border-radius: 20px;
+  padding: 30px 40px;
+  text-align: center;
+  min-width: 240px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.pause-box h2 {
+  font-family: var(--otb-font-heading, 'Fredoka One', cursive);
+  color: #fff;
+  margin: 0 0 20px;
+  font-size: 1.4rem;
+}
+.pause-box button {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  min-height: 48px;
+}
+.pause-box button:last-child { margin-bottom: 0; }
+
 /* ============ QUESTION AREA ============ */
 .question-area {
   position: relative;
