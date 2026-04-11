@@ -86,9 +86,9 @@ const PotionEngine = (() => {
   }
 
   // Character sprites (DALL-E art replacing procedural drawing)
-  const jackImg = new Image();
+  const jackImg = document.createElement('img');
   jackImg.src = 'assets/jack-sprite.png';
-  const zeroImg = new Image();
+  const zeroImg = document.createElement('img');
   zeroImg.src = 'assets/zero-sprite.png';
 
   function preloadBgImages() {
@@ -110,7 +110,7 @@ const PotionEngine = (() => {
       'assets/bg-room14.png'
     ];
     paths.forEach((src, i) => {
-      const img = new Image();
+      const img = document.createElement('img');
       img.src = src;
       bgImages[i] = img;
     });

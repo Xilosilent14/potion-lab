@@ -16,7 +16,11 @@ const PotionAudio = (() => {
 
   function ensureContext() {
     if (ctx) return;
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    try {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+      return; // SES lockdown or browser restriction — audio degrades gracefully
+    }
     masterGain = ctx.createGain();
     masterGain.gain.value = 0.7;
     masterGain.connect(ctx.destination);
