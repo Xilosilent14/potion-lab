@@ -274,7 +274,7 @@ const PotionAudio = (() => {
     resume();
     // Play MP3 music loop
     if (!_bgmAudio) {
-      _bgmAudio = new Audio('assets/sounds/music/bgm-potion.mp3');
+      _bgmAudio = document.createElement('audio'); _bgmAudio.src = 'assets/sounds/music/bgm-potion.mp3';
       _bgmAudio.loop = true;
       _bgmAudio.volume = 0.12;
       _bgmAudio.play().catch(() => {});
