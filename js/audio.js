@@ -266,14 +266,21 @@ const PotionAudio = (() => {
   ];
 
   /* ---- Halloween Town ambient music engine ---- */
+  // MP3 background music
+  let _bgmAudio = null;
   function startMusic() {
     if (!musicEnabled) return;
     ensureContext();
     resume();
+    // Play MP3 music loop
+    if (!_bgmAudio) {
+      _bgmAudio = new Audio('assets/sounds/music/bgm-potion.mp3');
+      _bgmAudio.loop = true;
+      _bgmAudio.volume = 0.12;
+      _bgmAudio.play().catch(() => {});
+    }
     if (bgStarted) return;
     bgStarted = true;
-    loopGeneration++;
-    _runMusicLoop(loopGeneration);
   }
 
   function _runMusicLoop(gen) {
@@ -423,6 +430,7 @@ const PotionAudio = (() => {
   }
 
   function stopMusic() {
+    if (_bgmAudio) { _bgmAudio.pause(); _bgmAudio.currentTime = 0; _bgmAudio = null; }
     bgStarted = false;
     loopGeneration++;
   }
