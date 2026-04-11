@@ -75,14 +75,21 @@ const CloudTTS = (() => {
 
     // Get or create AudioContext
     function _getCtx() {
-        if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+        if (!ctx) {
+            try {
+                ctx = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                return null; // SES lockdown or browser restriction
+            }
+        }
+        if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
         return ctx;
     }
 
     // Play an ArrayBuffer as audio
     function _playBuffer(arrayBuffer, volume, onEnd) {
         const c = _getCtx();
+        if (!c) { if (onEnd) onEnd(); return; }
         // Need to clone buffer since decodeAudioData consumes it
         const bufCopy = arrayBuffer.slice(0);
         c.decodeAudioData(bufCopy, (decoded) => {
