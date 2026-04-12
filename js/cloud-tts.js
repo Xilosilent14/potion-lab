@@ -110,7 +110,11 @@ const CloudTTS = (() => {
             };
             _speaking = true;
             _currentSource = source;
-            source.start(0);
+            c.resume().then(() => source.start(0)).catch(() => {
+                _speaking = false;
+                _currentSource = null;
+                if (onEnd) onEnd();
+            });
         }, () => {
             _speaking = false;
             if (onEnd) onEnd();
