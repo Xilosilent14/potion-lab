@@ -83,6 +83,8 @@
 
   /* ---- MENU ---- */
   function showMenu() {
+    _clearSessionWarnTimer();
+    _clearHintInactivityTimer();
     PotionEngine.setMode('menu');
     showScreen('menu');
     renderMenuShelf();
@@ -127,8 +129,67 @@
     currentQuestion: null,
     answered: false,
     startTime: 0,
-    streak: 0
+    streak: 0,
+    sessionStartTs: 0
   };
+
+  /* Pre-K healthy session length: 20 min. Warn 60s before. */
+  const SESSION_MAX_MS = 20 * 60 * 1000;
+  const SESSION_WARN_BEFORE_MS = 60 * 1000;
+  let _sessionWarnTimer = null;
+  function _clearSessionWarnTimer() {
+    if (_sessionWarnTimer) { clearTimeout(_sessionWarnTimer); _sessionWarnTimer = null; }
+  }
+  function _startSessionWarnTimer() {
+    _clearSessionWarnTimer();
+    _sessionWarnTimer = setTimeout(() => {
+      _showSessionEndWarning();
+    }, SESSION_MAX_MS - SESSION_WARN_BEFORE_MS);
+  }
+  function _showSessionEndWarning() {
+    // Reuse the modal styling. Build overlay inline (DOM only, no innerHTML strings with input).
+    let overlay = document.getElementById('session-end-warning');
+    if (overlay) overlay.remove();
+    overlay = document.createElement('div');
+    overlay.id = 'session-end-warning';
+    overlay.className = 'modal-overlay';
+    overlay.style.display = 'flex';
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.textAlign = 'center';
+    const h = document.createElement('h2');
+    h.className = 'modal-title';
+    h.textContent = '⏰ Almost break time!';
+    const p = document.createElement('p');
+    p.className = 'modal-body';
+    p.textContent = "You've been brewing for a while. Take a stretch or keep going?";
+    const actions = document.createElement('div');
+    actions.className = 'modal-actions';
+    const keep = document.createElement('button');
+    keep.className = 'btn-play';
+    keep.textContent = '🧪 Keep playing';
+    keep.addEventListener('click', () => {
+      overlay.remove();
+      // Reset the warn timer for another full window
+      _startSessionWarnTimer();
+    });
+    const brk = document.createElement('button');
+    brk.className = 'btn-secondary';
+    brk.textContent = '🏠 Break';
+    brk.addEventListener('click', () => {
+      overlay.remove();
+      _clearSessionWarnTimer();
+      showMenu();
+    });
+    actions.appendChild(keep);
+    actions.appendChild(brk);
+    modal.appendChild(h);
+    modal.appendChild(p);
+    modal.appendChild(actions);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    PotionAudio.jackSpeak('Almost break time! Take a stretch, or tap keep playing!', { rate: 0.85 });
+  }
 
   /* ---- GAME ---- */
   function startGame() {
@@ -144,6 +205,8 @@
     game.wrongCount = 0;
     game.sessionPotions = [];
     game.streak = 0;
+    game.sessionStartTs = Date.now();
+    _startSessionWarnTimer();
 
     // Set the canvas room background and music to match the current potion's room
     // Each room now has its own unique DALL-E background
@@ -1081,7 +1144,11 @@
   /* ---- RENDER QUESTION ---- */
   function renderQuestion(q) {
     const promptEl = document.getElementById('question-prompt');
-    if (promptEl) promptEl.textContent = q.prompt;
+    if (promptEl) {
+      promptEl.textContent = q.prompt;
+      // Add 🔊 voice-replay button to the question area (idempotent: only once per game)
+      ensureVoiceReplayButton();
+    }
 
     const countDisplay = document.getElementById('count-display');
     if (countDisplay) {
@@ -1092,6 +1159,12 @@
         countDisplay.style.display = 'none';
       }
     }
+
+    // CRITICAL accessibility fix for pre-readers like Asher: narrate the question
+    // BEFORE rendering ingredient buttons (was previously delayed 300ms post-render
+    // and used default rate, which the review found unreliable on Silk).
+    // rate=0.8 is slower than the default for clearer pronunciation.
+    PotionAudio.jackSpeak(q.prompt.replace('\n', '. '), { rate: 0.8 });
 
     const area = document.getElementById('ingredients-area');
     if (!area) return;
@@ -1108,8 +1181,27 @@
     hideSallyHint();
     PotionEngine.jackTalk();
 
-    // Jack speaks the prompt aloud
-    setTimeout(() => PotionAudio.jackSpeak(q.prompt.replace('\n', '. ')), 300);
+    // Start hint inactivity timer: pulse at 3s, Sally hint+narration at 5s
+    _startHintInactivityTimer(q);
+  }
+
+  // 🔊 voice replay button — narrates the current question on tap (80px, idempotent)
+  function ensureVoiceReplayButton() {
+    if (document.getElementById('btn-voice-replay')) return;
+    const area = document.getElementById('question-area');
+    if (!area) return;
+    const btn = document.createElement('button');
+    btn.id = 'btn-voice-replay';
+    btn.className = 'btn-voice-replay';
+    btn.setAttribute('aria-label', 'Hear the question again');
+    btn.type = 'button';
+    btn.textContent = '🔊';
+    btn.addEventListener('click', () => {
+      if (game.currentQuestion) {
+        PotionAudio.jackSpeak(game.currentQuestion.prompt.replace('\n', '. '), { rate: 0.8 });
+      }
+    });
+    area.appendChild(btn);
   }
 
   function getColorHex(label) {
@@ -1209,6 +1301,13 @@
   }
 
   function handleCorrect(btn, q, timeMs) {
+    // Cancel any pending hint
+    _clearHintInactivityTimer();
+
+    // SUB-100MS CONFIRMATION: ascending chime + green flash + particle burst at tap.
+    // Synchronous: AudioContext call (no setTimeout) and CSS class add happen now.
+    _playFastConfirmChime();
+    _spawnTapBurst(btn);
     btn.classList.add('correct-flash');
     PotionAudio.playCorrect();
     PotionAudio.playPickup();
@@ -1245,6 +1344,9 @@
   }
 
   function handleWrong(btn, q, timeMs) {
+    // Pause inactivity hint (the wrong-feedback overlay needs the player's attention)
+    _clearHintInactivityTimer();
+
     btn.classList.add('wrong-shake');
     PotionAudio.playWrong();
 
@@ -1254,12 +1356,14 @@
     PotionProgress.recordAnswer(q.conceptId, q.type, false, timeMs);
     if (typeof OTBEcosystem !== 'undefined') OTBEcosystem.recordAnswer(q.type, _ecoCategory(q.type), false, 0, 'potion-lab');
     PotionEngine.zeroSad();
+    // Immediate gentle rotating wrong-answer narration (Voice.speak)
+    PotionAudio.jackSpeak(_pickWrongPhrase(), { rate: 0.85 });
     PotionAudio.jackWrongLine();
 
     updateHUD();
-    showWrongFeedback();
+    showWrongFeedback(q);
 
-    // Sally hint after 2 wrong
+    // Sally hint after 2 wrong (still useful as a hard floor)
     if (game.wrongCount >= 2) {
       showSallyHint(q);
       PotionEngine.jackHint();
@@ -1271,10 +1375,23 @@
       document.querySelectorAll('[data-correct]').forEach(b => {
         if (b.dataset.correct === '1') b.classList.add('glow-pulse');
       });
+      // Restart inactivity timer so the player gets re-prompted if they stall
+      if (game.currentQuestion) _startHintInactivityTimer(game.currentQuestion);
     }, 600);
   }
 
-  function showWrongFeedback() {
+  /* Rotating gentle phrases narrated on a wrong tap */
+  const WRONG_PHRASES = [
+    'Oops, try again!',
+    'You can do it!',
+    "That's okay, look again!",
+    'Almost! Try one more.'
+  ];
+  function _pickWrongPhrase() {
+    return WRONG_PHRASES[Math.floor(Math.random() * WRONG_PHRASES.length)];
+  }
+
+  function showWrongFeedback(q) {
     const messages = [
       'Oops! Try again!',
       "Lock, Shock & Barrel are sneaky!",
@@ -1284,8 +1401,112 @@
     const el = document.getElementById('wrong-feedback');
     if (!el) return;
     el.querySelector('span').textContent = messages[Math.floor(Math.random() * messages.length)];
+
+    // Recreate the "Try Again" recovery button each time so the listener closes
+    // over the current question (no stale closures, no onclick re-assignment).
+    const old = el.querySelector('.btn-try-again');
+    if (old) old.remove();
+    const tryBtn = document.createElement('button');
+    tryBtn.className = 'btn-try-again';
+    tryBtn.type = 'button';
+    tryBtn.setAttribute('aria-label', 'Try the question again');
+    tryBtn.textContent = '🔄 Try Again';
+    // .wrong-feedback sets pointer-events:none; re-enable on the button only
+    tryBtn.style.pointerEvents = 'auto';
+    tryBtn.addEventListener('click', () => {
+      const cq = q || game.currentQuestion;
+      if (!cq) return;
+      PotionAudio.jackSpeak(cq.prompt.replace('\n', '. '), { rate: 0.8 });
+      el.style.display = 'none';
+      document.querySelectorAll('[data-correct]').forEach(b => b.classList.remove('wrong-shake'));
+      game.answered = false;
+      _startHintInactivityTimer(cq);
+    });
+    el.appendChild(tryBtn);
+
     el.style.display = 'block';
-    setTimeout(() => { el.style.display = 'none'; }, 1500);
+    // Auto-hide after 1.5s in case the parent doesn't tap Try Again
+    clearTimeout(_wrongHideTimer);
+    _wrongHideTimer = setTimeout(() => { el.style.display = 'none'; }, 1500);
+  }
+  let _wrongHideTimer = null;
+
+  /* ---- HINT INACTIVITY TIMER ----
+     3s of no answer: gentle pulse on the question area.
+     5s of no answer: Sally hint with narration. (Was ~8s previously.)
+  */
+  let _hintPulseTimer = null;
+  let _hintShowTimer = null;
+  function _clearHintInactivityTimer() {
+    if (_hintPulseTimer) { clearTimeout(_hintPulseTimer); _hintPulseTimer = null; }
+    if (_hintShowTimer)  { clearTimeout(_hintShowTimer);  _hintShowTimer  = null; }
+    const qa = document.getElementById('question-area');
+    if (qa) qa.classList.remove('pulse-prompt');
+  }
+  function _startHintInactivityTimer(q) {
+    _clearHintInactivityTimer();
+    _hintPulseTimer = setTimeout(() => {
+      const qa = document.getElementById('question-area');
+      if (qa) qa.classList.add('pulse-prompt');
+    }, 3000);
+    _hintShowTimer = setTimeout(() => {
+      if (!game.answered) {
+        showSallyHint(q);
+        PotionEngine.jackHint();
+      }
+    }, 5000);
+  }
+
+  /* ---- SUB-100MS CONFIRMATION CHIME + TAP BURST ----
+     Direct AudioContext oscillator (no setTimeout, no MP3 decode delay).
+     Ascending C-E-G arpeggio. Spawns small green particle burst at the tapped button.
+  */
+  let _confirmCtx = null;
+  function _getConfirmCtx() {
+    if (_confirmCtx) return _confirmCtx;
+    try {
+      _confirmCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+      return null;
+    }
+    return _confirmCtx;
+  }
+  function _playFastConfirmChime() {
+    const c = _getConfirmCtx();
+    if (!c) return;
+    if (c.state === 'suspended') { try { c.resume(); } catch (e) {} }
+    const t0 = c.currentTime;
+    [523.25, 659.25, 783.99].forEach((freq, i) => {
+      const t = t0 + i * 0.045; // ~45ms steps → full chime in ~135ms
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.28, t + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      osc.connect(gain);
+      gain.connect(c.destination);
+      osc.start(t);
+      osc.stop(t + 0.18);
+    });
+  }
+  function _spawnTapBurst(btn) {
+    if (!btn || !btn.getBoundingClientRect) return;
+    const rect = btn.getBoundingClientRect();
+    const burst = document.createElement('div');
+    burst.className = 'tap-burst';
+    burst.style.left = (rect.left + rect.width / 2) + 'px';
+    burst.style.top  = (rect.top  + rect.height / 2) + 'px';
+    // 8 spokes
+    for (let i = 0; i < 8; i++) {
+      const spark = document.createElement('span');
+      spark.className = 'tap-burst-spark';
+      spark.style.setProperty('--a', (i * 45) + 'deg');
+      burst.appendChild(spark);
+    }
+    document.body.appendChild(burst);
+    setTimeout(() => { try { burst.remove(); } catch (e) {} }, 500);
   }
 
   function showSallyHint(q) {
@@ -1370,8 +1591,14 @@
     if (name) name.textContent = potion.name;
     if (count) count.textContent = `Potion ${PotionProgress.getPotionCount()} of ${TOTAL_POTIONS}`;
 
-    // Jack announces the potion
-    setTimeout(() => PotionAudio.jackAnnouncePotion(potion.name), 600);
+    // Celebration narration — text-only screen previously missed this.
+    // Jack narrates the full celebration line so pre-readers get audio feedback.
+    setTimeout(() => {
+      PotionAudio.jackSpeak(
+        `Magnificent! You brewed ${potion.name}! Ready for the next one?`,
+        { rate: 0.85 }
+      );
+    }, 600);
 
     // Spawn celebration on the potion canvas
     const potionCanvas = document.getElementById('potion-canvas');

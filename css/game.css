@@ -1276,19 +1276,19 @@ html, body {
     .question-area { padding: 6px 16px 4px; }
     .question-prompt { font-size: 1.15rem; padding: 8px 20px; }
 
-    /* Ingredients - reduce size and spacing to fit with cauldron */
+    /* Ingredients - keep 80px floor for Fire tablet touch targets (ages 3-6) */
     .ingredients-area { gap: 12px; padding: 4px 16px; padding-bottom: 160px; }
-    .ingredient-btn { width: 72px; height: 72px; font-size: 1.8rem; border-radius: 16px; }
+    .ingredient-btn { width: 80px; height: 80px; font-size: 1.8rem; border-radius: 16px; }
     .ingredient-label { font-size: 0.65rem; }
-    .opt-color { width: 78px; height: 78px; }
+    .opt-color { width: 82px; height: 82px; }
     .opt-color-label { font-size: 0.7rem; }
-    .opt-letter { width: 74px; height: 74px; }
+    .opt-letter { width: 80px; height: 80px; }
     .opt-letter-char { font-size: 2.4rem; }
-    .opt-number { width: 70px; height: 70px; }
+    .opt-number { width: 80px; height: 80px; }
     .opt-number-char { font-size: 2.2rem; }
-    .opt-shape { width: 76px; height: 76px; }
+    .opt-shape { width: 82px; height: 82px; }
     .opt-shape-icon { font-size: 2rem; }
-    .opt-word { min-width: 80px; padding: 8px 14px; }
+    .opt-word { min-width: 88px; padding: 8px 14px; }
     .opt-word-text { font-size: 1.1rem; }
     .opt-shape-label { font-size: 0.65rem; }
     .count-option-btn { width: 64px; height: 64px; font-size: 1.6rem; }
@@ -1369,20 +1369,108 @@ html, body {
     }
 }
 
-/* === Fire tablet touch target minimums (48px for ages 3-6) === */
+/* === Fire tablet touch target minimums ===
+   Primary CTAs (Play, room-select tiles): 100×120 min
+   Ingredient tiles: 80×80 min
+   Secondary (Back, Parents, HUD, etc.): 48px floor
+*/
 .btn-play,
-.btn-secondary,
-.btn-danger,
+.room-card,
+.potion-slot {
+    min-height: 100px;
+    min-width: 120px;
+}
 .ingredient-btn,
 .count-option-btn,
 .opt-color,
 .opt-letter,
 .opt-number,
 .opt-shape,
-.opt-word,
-.room-card,
-.potion-slot,
+.opt-word {
+    min-height: 80px;
+    min-width: 80px;
+}
+.btn-secondary,
+.btn-danger,
+.hud-btn,
+.toggle-btn,
 [role="button"] {
     min-height: 48px;
     min-width: 48px;
+}
+
+/* === Voice replay (🔊) button — 80px, sits in the question area === */
+.btn-voice-replay {
+    background: rgba(255,117,24,0.25);
+    border: 2px solid rgba(255,117,24,0.7);
+    border-radius: 50%;
+    color: #fff;
+    font-size: 1.6rem;
+    width: 80px;
+    height: 80px;
+    min-width: 80px;
+    min-height: 80px;
+    cursor: pointer;
+    position: absolute;
+    top: 6px;
+    right: 12px;
+    z-index: 11;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(255,117,24,0.35);
+    transition: transform 0.12s;
+}
+.btn-voice-replay:active { transform: scale(0.92); }
+
+/* === Try Again button inside wrong-feedback overlay (80px) === */
+.btn-try-again {
+    margin-top: 10px;
+    background: linear-gradient(135deg, #ff7518, #e94520);
+    color: #fff;
+    border: none;
+    border-radius: 40px;
+    padding: 14px 28px;
+    font-family: 'Fredoka One', sans-serif;
+    font-size: 1.1rem;
+    min-height: 80px;
+    min-width: 160px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(255,117,24,0.5);
+}
+.btn-try-again:active { transform: scale(0.95); }
+/* Allow the overlay to host an interactive button. The overlay itself sets pointer-events:none;
+   the inline style on .btn-try-again re-enables them on the button. */
+
+/* === Question-area pulse (3s inactivity cue) === */
+.question-area.pulse-prompt .question-prompt {
+    animation: prompt-pulse 1s ease-in-out infinite;
+}
+@keyframes prompt-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,117,24,0.0); transform: scale(1); }
+    50%       { box-shadow: 0 0 18px 4px rgba(255,117,24,0.55); transform: scale(1.03); }
+}
+
+/* === Tap burst (sub-100ms correct-answer particle ring) === */
+.tap-burst {
+    position: fixed;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    z-index: 200;
+}
+.tap-burst-spark {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #b8ff8a 0%, #2ecc71 70%, transparent 100%);
+    transform: translate(-50%, -50%) rotate(var(--a)) translateX(0);
+    animation: tap-burst-fly 0.45s ease-out forwards;
+}
+@keyframes tap-burst-fly {
+    0%   { transform: translate(-50%, -50%) rotate(var(--a)) translateX(0);   opacity: 1; }
+    100% { transform: translate(-50%, -50%) rotate(var(--a)) translateX(60px); opacity: 0; }
 }

@@ -622,21 +622,38 @@ const PotionAudio = (() => {
 
   // Jack-style voice: deep, theatrical, warm
   // Uses Web Speech API — works on Chrome/Silk, falls back silently
-  function jackSpeak(text, onEnd) {
+  // opts: { rate, onEnd }  (rate=0.8 used for question narration, slower = clearer for pre-readers)
+  function jackSpeak(text, optsOrOnEnd) {
     if (!ttsEnabled) {
-      if (onEnd) onEnd();
+      const cb = typeof optsOrOnEnd === 'function' ? optsOrOnEnd : (optsOrOnEnd && optsOrOnEnd.onEnd);
+      if (cb) cb();
       return;
     }
-    // Use Google Cloud TTS (works on Silk, no speechSynthesis needed)
+    // Normalize args: jackSpeak(text, onEnd) OR jackSpeak(text, { rate, onEnd })
+    let onEnd = null;
+    let rate = 0.88;
+    if (typeof optsOrOnEnd === 'function') {
+      onEnd = optsOrOnEnd;
+    } else if (optsOrOnEnd && typeof optsOrOnEnd === 'object') {
+      onEnd = optsOrOnEnd.onEnd || null;
+      if (typeof optsOrOnEnd.rate === 'number') rate = optsOrOnEnd.rate;
+    }
+
+    // Use Google Cloud TTS (works on Silk, no speechSynthesis needed) — wrap in try/catch
     if (typeof CloudTTS !== 'undefined') {
-      CloudTTS.speakJack(text, { onEnd: onEnd });
-      return;
+      try {
+        CloudTTS.speakJack(text, { rate: rate, onEnd: onEnd });
+        return;
+      } catch (err) {
+        console.warn('[PotionAudio] CloudTTS.speakJack threw, falling back to native Web Speech:', err);
+        // fall through to native speechSynthesis below
+      }
     }
     // Legacy fallback to speechSynthesis
     if (!window.speechSynthesis) { if (onEnd) onEnd(); return; }
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
-    utter.pitch = 0.8; utter.rate = 0.88; utter.volume = 0.9;
+    utter.pitch = 0.8; utter.rate = rate; utter.volume = 0.9;
     if (onEnd) utter.onend = onEnd;
     utter.onerror = () => { if (onEnd) onEnd(); };
     window.speechSynthesis.speak(utter);
