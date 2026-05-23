@@ -19,10 +19,54 @@
     applySettings();
     initCanvases();
     initEvents();
+    _checkDailyReturn();
     showSplash();
     registerSW();
     if (typeof OTBEcosystem !== 'undefined') OTBEcosystem.checkDailyStreak();
+    // First analytics signal: app boot complete (analytics module emits session_start itself)
+    if (typeof PotionAnalytics !== 'undefined') PotionAnalytics.emit('boot', { potions: PotionProgress.getPotionCount() });
   });
+
+  /* ---- DAILY RETURN ----
+     Mirrors Spidey Academy's pattern so Asher gets continuity if he switches
+     between games. Triggers when lastPlayDate === yesterday (came back next day).
+     Builds DOM nodes manually (no innerHTML/strings) for CSP safety.
+  */
+  function _checkDailyReturn() {
+    try {
+      const s = PotionProgress.get();
+      if (!s || !s.lastPlayDate) return;
+      const today = new Date().toDateString();
+      const yesterday = new Date(Date.now() - 86400000).toDateString();
+      if (s.lastPlayDate === yesterday && s.lastPlayDate !== today) {
+        _showReturnCelebration();
+      }
+    } catch (e) { /* ignore */ }
+  }
+  function _showReturnCelebration() {
+    const overlay = document.createElement('div');
+    overlay.className = 'return-celebration-overlay';
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
+    const card = document.createElement('div');
+    card.className = 'return-celebration-card';
+    const icon = document.createElement('div');
+    icon.className = 'return-celebration-icon';
+    icon.textContent = '🔥';
+    const t = document.createElement('div');
+    t.className = 'return-celebration-text';
+    t.textContent = 'Welcome back!';
+    const sub = document.createElement('div');
+    sub.className = 'return-celebration-sub';
+    sub.textContent = "You're keeping your streak alive!";
+    card.appendChild(icon); card.appendChild(t); card.appendChild(sub);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    setTimeout(() => {
+      try { PotionAudio.jackSpeak("Welcome back! You're keeping your streak alive!", { rate: 0.85 }); } catch (e) {}
+    }, 250);
+    setTimeout(() => { try { overlay.remove(); } catch (e) {} }, 2400);
+  }
 
   function registerSW() {
     // Skip SW on localhost to prevent caching during development
@@ -85,6 +129,9 @@
   function showMenu() {
     _clearSessionWarnTimer();
     _clearHintInactivityTimer();
+    // Remove room progress bar when leaving the game screen
+    const bar = document.getElementById('room-progress-bar');
+    if (bar) bar.remove();
     PotionEngine.setMode('menu');
     showScreen('menu');
     renderMenuShelf();
@@ -176,11 +223,14 @@
     const brk = document.createElement('button');
     brk.className = 'btn-secondary';
     brk.textContent = '🏠 Break';
+    brk.setAttribute('aria-label', 'Take a break and return to menu');
     brk.addEventListener('click', () => {
       overlay.remove();
       _clearSessionWarnTimer();
+      if (typeof PotionAnalytics !== 'undefined') PotionAnalytics.sessionEnd('break_warning');
       showMenu();
     });
+    keep.setAttribute('aria-label', 'Keep playing');
     actions.appendChild(keep);
     actions.appendChild(brk);
     modal.appendChild(h);
@@ -218,9 +268,50 @@
     showScreen('game');
     PotionEngine.resetCauldron(game.questionsNeeded);
     updateHUD();
+    _renderRoomProgress();
     PotionEngine.jackTalk();
+    // Mark daily play date now that real gameplay begins
+    try { PotionProgress.recordSession(); } catch (e) {}
+    if (typeof PotionAnalytics !== 'undefined') PotionAnalytics.roomEnter(game.currentPotion.room, game.currentPotion.id);
 
     setTimeout(() => askNextQuestion(), 600);
+  }
+
+  /* ---- ROOM PROGRESS PIPS ----
+     Visible "5 of 7 potions" indicator for non-readers: gold stars for
+     earned, pulsing orange for current, dim outline for upcoming.
+  */
+  function _renderRoomProgress() {
+    const gameScreen = document.getElementById('screen-game');
+    if (!gameScreen || !game.currentPotion) return;
+    let bar = document.getElementById('room-progress-bar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'room-progress-bar';
+      bar.className = 'room-progress-bar';
+      bar.setAttribute('role', 'progressbar');
+      bar.setAttribute('aria-label', 'Potions in this room');
+      gameScreen.appendChild(bar);
+    }
+    const roomNum = game.currentPotion.room;
+    // Get all potions in this room from POTIONS
+    const roomPotions = (typeof POTIONS !== 'undefined')
+      ? POTIONS.filter(p => p.room === roomNum)
+      : [];
+    const earnedIds = PotionProgress.get().potionsCollected || [];
+    bar.innerHTML = '';
+    roomPotions.forEach(p => {
+      const pip = document.createElement('span');
+      pip.className = 'room-progress-pip';
+      const earned = earnedIds.includes(p.id);
+      const current = p.id === game.currentPotion.id;
+      if (earned) pip.classList.add('earned');
+      if (current && !earned) pip.classList.add('current');
+      pip.setAttribute('aria-label', p.name + (earned ? ' (earned)' : current ? ' (now brewing)' : ' (locked)'));
+      bar.appendChild(pip);
+    });
+    bar.setAttribute('aria-valuenow', String(earnedIds.filter(id => roomPotions.some(rp => rp.id === id)).length));
+    bar.setAttribute('aria-valuemax', String(roomPotions.length));
   }
 
   function updateHUD() {
@@ -478,19 +569,30 @@
     };
   }
 
+  // Six size variants (was 1) — rotates through different ingredient pairs so
+  // a 3.5yo doesn't see the same prompt every round. Also flips correct/wrong
+  // position randomly so the answer isn't always on top.
+  const SIZE_PAIRS = [
+    { askBig: true,  bigEmoji: '🫙', bigLabel: 'Big jar',     smEmoji: '🍶', smLabel: 'Small jar' },
+    { askBig: false, bigEmoji: '🦴', bigLabel: 'Big bone',    smEmoji: '🦴', smLabel: 'Small bone' },
+    { askBig: true,  bigEmoji: '🎃', bigLabel: 'Big pumpkin', smEmoji: '🎃', smLabel: 'Small pumpkin' },
+    { askBig: false, bigEmoji: '🦇', bigLabel: 'Big bat',     smEmoji: '🦇', smLabel: 'Small bat' },
+    { askBig: true,  bigEmoji: '⭐', bigLabel: 'Big star',    smEmoji: '⭐', smLabel: 'Small star' },
+    { askBig: false, bigEmoji: '🌙', bigLabel: 'Big moon',    smEmoji: '🌙', smLabel: 'Small moon' }
+  ];
   function buildSizeQuestion() {
-    const sizes = [
-      { label: 'big', emoji: '🔵', size: 'big' },
-      { label: 'small', emoji: '🔵', size: 'small' }
-    ];
-    const prompt = `Jack needs the BIG bottle!\nWhich one is bigger?`;
+    const pair = SIZE_PAIRS[Math.floor(Math.random() * SIZE_PAIRS.length)];
+    const askBig = pair.askBig;
+    const prompt = askBig
+      ? `Find the BIGGER ${pair.bigLabel.replace(/^Big /i, '').replace(/^Small /i, '')}!`
+      : `Find the SMALLER ${pair.bigLabel.replace(/^Big /i, '').replace(/^Small /i, '')}!`;
     return {
       type: 'size',
-      conceptId: 'size_big_small',
+      conceptId: askBig ? 'size_big' : 'size_small',
       prompt,
       options: [
-        { emoji: '🫙', label: 'Big jar', correct: true,  size: 'big' },
-        { emoji: '🍶', label: 'Small jar', correct: false, size: 'small' }
+        { emoji: pair.bigEmoji, label: pair.bigLabel, correct: askBig,  size: 'big' },
+        { emoji: pair.smEmoji,  label: pair.smLabel,  correct: !askBig, size: 'small' }
       ]
     };
   }
@@ -1115,9 +1217,12 @@
 
   function buildColorMixQuestion() {
     const mixes = [
-      { a: 'Red', b: 'Yellow', result: 'orange 🟠', emoji: '🔴🟡' },
-      { a: 'Red', b: 'Blue', result: 'purple 🟣', emoji: '🔴🔵' },
-      { a: 'Blue', b: 'Yellow', result: 'green 🟢', emoji: '🔵🟡' }
+      { a: 'Red',    b: 'Yellow', result: 'orange 🟠', emoji: '🔴🟡' },
+      { a: 'Red',    b: 'Blue',   result: 'purple 🟣', emoji: '🔴🔵' },
+      { a: 'Blue',   b: 'Yellow', result: 'green 🟢',  emoji: '🔵🟡' },
+      { a: 'Yellow', b: 'Red',    result: 'orange 🟠', emoji: '🟡🔴' },
+      { a: 'Blue',   b: 'Red',    result: 'purple 🟣', emoji: '🔵🔴' },
+      { a: 'Yellow', b: 'Blue',   result: 'green 🟢',  emoji: '🟡🔵' }
     ];
     const mix = mixes[Math.floor(Math.random() * mixes.length)];
     const options = [
@@ -1174,6 +1279,17 @@
       const btn = createIngredientButton(opt, q.type);
       btn.dataset.correct = opt.correct ? '1' : '0';
       btn.style.animation = `badge-pop 0.3s cubic-bezier(0.34,1.56,0.64,1) ${i * 0.09}s both`;
+      btn.type = 'button';
+      // Accessibility: every option gets a meaningful aria-label.
+      // We use the option label (and emoji where it adds meaning, e.g. shapes).
+      const ariaLabel = opt.label
+        ? (opt.emoji && opt.emoji !== opt.label ? `${opt.label} (${opt.emoji})` : String(opt.label))
+        : (opt.emoji || 'option');
+      btn.setAttribute('aria-label', ariaLabel);
+      // For color buttons, don't rely on color alone — keep a textual label
+      // already rendered, but also tag with a stable data attribute so
+      // screen readers / future audits can verify the color name.
+      if (q.type === 'color' && opt.label) btn.dataset.colorName = String(opt.label).toLowerCase();
       btn.addEventListener('click', () => handleAnswer(btn, opt, q));
       area.appendChild(btn);
     });
@@ -1318,12 +1434,21 @@
 
     PotionProgress.recordAnswer(q.conceptId, q.type, true, timeMs);
     if (typeof OTBEcosystem !== 'undefined') OTBEcosystem.recordAnswer(q.type, _ecoCategory(q.type), true, 0, 'potion-lab');
+    if (typeof PotionAnalytics !== 'undefined') PotionAnalytics.questionAnswered(q.type, true, timeMs, q.conceptId);
     PotionEngine.zeroHappy();
     PotionEngine.addIngredient();
     PotionAudio.jackPraise();
 
     if (game.streak >= 3) {
       PotionAudio.playStreak(Math.min(5, game.streak));
+    }
+
+    // Variable reward: ~12% chance of a "lucky" extra ingredient on a correct tap
+    // (only mid-potion, not on the final question — that would clash with the
+    // potion-complete celebration). Never on the first question either, so it
+    // feels earned rather than handed out.
+    if (game.questionsThisPotion > 1 && game.questionsThisPotion < game.questionsNeeded && Math.random() < 0.12) {
+      _spawnLuckyReward();
     }
 
     updateHUD();
@@ -1355,6 +1480,7 @@
 
     PotionProgress.recordAnswer(q.conceptId, q.type, false, timeMs);
     if (typeof OTBEcosystem !== 'undefined') OTBEcosystem.recordAnswer(q.type, _ecoCategory(q.type), false, 0, 'potion-lab');
+    if (typeof PotionAnalytics !== 'undefined') PotionAnalytics.questionAnswered(q.type, false, timeMs, q.conceptId);
     PotionEngine.zeroSad();
     // Immediate gentle rotating wrong-answer narration (Voice.speak)
     PotionAudio.jackSpeak(_pickWrongPhrase(), { rate: 0.85 });
@@ -1491,6 +1617,39 @@
       osc.stop(t + 0.18);
     });
   }
+  /* ---- VARIABLE REWARD: LUCKY DROP ----
+     12% of correct answers (mid-potion, not first/last) spawn an extra reward.
+     One of: bonus coin, sparkly star pip, or Sally's bonus encouragement.
+     Predictable variance keeps engagement high without manipulation — see
+     research/game-design/variable-reward-psychology.md.
+  */
+  const LUCKY_KINDS = [
+    { kind: 'coin',  emoji: '🪙', text: 'Bonus coin!',     speak: 'A bonus coin!',         ecoXp: 0, ecoCoins: 3 },
+    { kind: 'spark', emoji: '✨', text: 'Sparkle bonus!',  speak: 'Sparkle bonus!',        ecoXp: 3, ecoCoins: 0 },
+    { kind: 'sally', emoji: '💕', text: "Sally's cheer!",  speak: 'Sally says, you are doing great!', ecoXp: 0, ecoCoins: 0 }
+  ];
+  function _spawnLuckyReward() {
+    const kind = LUCKY_KINDS[Math.floor(Math.random() * LUCKY_KINDS.length)];
+    const badge = document.createElement('div');
+    badge.className = 'lucky-reward';
+    badge.setAttribute('role', 'status');
+    badge.setAttribute('aria-live', 'polite');
+    badge.textContent = `${kind.emoji} ${kind.text}`;
+    document.body.appendChild(badge);
+    setTimeout(() => { try { badge.remove(); } catch (_) {} }, 1500);
+    // Audio + speak (quiet — music ducks via jackSpeak)
+    try { PotionAudio.playStreak(2); } catch (_) {}
+    try { PotionAudio.jackSpeak(kind.speak, { rate: 0.95 }); } catch (_) {}
+    // Optional ecosystem reward
+    if (typeof OTBEcosystem !== 'undefined') {
+      try {
+        if (kind.ecoXp) OTBEcosystem.addXP(kind.ecoXp, 'potion-lab');
+        if (kind.ecoCoins) OTBEcosystem.addCoins(kind.ecoCoins, 'potion-lab');
+      } catch (_) {}
+    }
+    if (typeof PotionAnalytics !== 'undefined') PotionAnalytics.variableRewardFired(kind.kind, kind.ecoCoins || kind.ecoXp || 1);
+  }
+
   function _spawnTapBurst(btn) {
     if (!btn || !btn.getBoundingClientRect) return;
     const rect = btn.getBoundingClientRect();
@@ -1550,8 +1709,21 @@
     const el = document.getElementById('sally-hint');
     const bubble = document.getElementById('sally-bubble');
     if (el && bubble) {
-      bubble.textContent = `💕 ${hint}`;
+      // "Lucky hint" — ~25% chance Sally adds a bonus tip alongside the regular hint.
+      let body = `💕 ${hint}`;
+      if (Math.random() < 0.25) {
+        const LUCKY_HINTS = [
+          'You can do hard things!',
+          'Take your time — there is no rush.',
+          'Try saying it out loud!',
+          'Look at the colors and shapes first.',
+          'I believe in you!'
+        ];
+        body += `\n✨ ${LUCKY_HINTS[Math.floor(Math.random() * LUCKY_HINTS.length)]}`;
+      }
+      bubble.textContent = body;
       el.style.display = 'flex';
+      if (typeof PotionAnalytics !== 'undefined') PotionAnalytics.hintUsed(q.type, 'sally');
     }
   }
 
@@ -1571,6 +1743,7 @@
     PotionProgress.collectPotion(potion.id);
     game.sessionPotions.push(potion);
     if (typeof OTBEcosystem !== 'undefined') { OTBEcosystem.addXP(10, 'potion-lab'); OTBEcosystem.addCoins(5, 'potion-lab'); }
+    if (typeof PotionAnalytics !== 'undefined') PotionAnalytics.potionEarned(potion.id, potion.name, potion.room);
 
     const newCount = PotionProgress.getPotionCount();
     setTimeout(() => {
@@ -2153,6 +2326,8 @@
     showScreen('game');
     PotionEngine.resetCauldron(game.questionsNeeded);
     updateHUD();
+    _renderRoomProgress();
+    if (typeof PotionAnalytics !== 'undefined') PotionAnalytics.roomEnter(game.currentPotion.room, game.currentPotion.id);
     setTimeout(() => askNextQuestion(), 400);
   }
 
@@ -2164,13 +2339,10 @@
 })();
 
 
-// Global error handler - catch runtime errors gracefully
-window.onerror = function(msg, source, line, col, error) {
-    console.error("Runtime error:", msg, "at", source, line + ":" + col);
-    return false;
-};
-window.addEventListener("unhandledrejection", function(event) {
-    console.error("Unhandled promise rejection:", event.reason);
+// Runtime error logging is handled by js/error-boundary.js (structured JSON via [bbg.err]).
+// Emit a session_end on tab close so analytics can compute play duration accurately.
+window.addEventListener('pagehide', function () {
+    try { if (typeof PotionAnalytics !== 'undefined') PotionAnalytics.sessionEnd('pagehide'); } catch (e) {}
 });
 
 // ===========================================================

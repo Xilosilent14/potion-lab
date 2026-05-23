@@ -1474,3 +1474,215 @@ html, body {
     0%   { transform: translate(-50%, -50%) rotate(var(--a)) translateX(0);   opacity: 1; }
     100% { transform: translate(-50%, -50%) rotate(var(--a)) translateX(60px); opacity: 0; }
 }
+
+/* ============================================================
+   Kids-UI Polish v2 — bevels, idle bobbing, scale press, focus,
+   24px+ readable text everywhere, room-progress pip bar.
+   See research/game-design/kids-ui-ux-patterns.md for the principles.
+   ============================================================ */
+
+/* Stronger bevel + saturated press feedback on primary CTAs */
+.btn-play {
+    box-shadow:
+        0 0 0 3px rgba(255,255,255,0.18) inset,
+        0 -4px 0 0 rgba(0,0,0,0.22) inset,
+        0 6px 24px rgba(255,117,24,0.55),
+        0 2px 0 0 rgba(255,117,24,0.85);
+    animation: cta-bob 2.6s ease-in-out infinite;
+}
+.btn-play:active {
+    transform: scale(0.94) translateY(2px);
+    animation: none;
+    box-shadow:
+        0 0 0 3px rgba(255,255,255,0.18) inset,
+        0 -1px 0 0 rgba(0,0,0,0.22) inset,
+        0 2px 8px rgba(255,117,24,0.4);
+}
+@keyframes cta-bob {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-4px); }
+}
+
+/* Idle bobbing for the secondary buttons (gentler) */
+.btn-secondary {
+    box-shadow:
+        0 0 0 2px rgba(255,255,255,0.08) inset,
+        0 -2px 0 0 rgba(0,0,0,0.18) inset,
+        0 3px 10px rgba(0,0,0,0.3);
+}
+
+/* Bigger, more saturated ingredient buttons. 24px+ font everywhere */
+.opt-color-label { font-size: 1.0rem; font-weight: 700; }
+.opt-shape-label { font-size: 1.0rem; }
+.ingredient-label { font-size: 0.95rem; }
+.opt-number-label { font-size: 0.9rem; }
+.sally-bubble { font-size: 1.15rem; line-height: 1.35; }
+
+/* Stronger bevel on all option buttons */
+.opt-color, .opt-letter, .opt-number, .opt-shape, .opt-word, .ingredient-btn {
+    box-shadow:
+        0 0 0 2px rgba(255,255,255,0.10) inset,
+        0 -4px 0 0 rgba(0,0,0,0.30) inset,
+        0 4px 14px rgba(0,0,0,0.55);
+}
+.opt-color:active, .opt-letter:active, .opt-number:active,
+.opt-shape:active, .opt-word:active, .ingredient-btn:active {
+    /* Slightly deeper press scale (was 0.91/0.92) for kids' tactile feel */
+    transform: scale(0.88) translateY(2px);
+    box-shadow:
+        0 0 0 2px rgba(255,255,255,0.10) inset,
+        0 -1px 0 0 rgba(0,0,0,0.30) inset,
+        0 1px 4px rgba(0,0,0,0.55);
+}
+
+/* Visible focus outline for keyboard / switch users */
+.btn-play:focus-visible,
+.btn-secondary:focus-visible,
+.hud-btn:focus-visible,
+.opt-color:focus-visible,
+.opt-letter:focus-visible,
+.opt-number:focus-visible,
+.opt-shape:focus-visible,
+.opt-word:focus-visible,
+.ingredient-btn:focus-visible,
+.btn-voice-replay:focus-visible {
+    outline: 4px solid #ffd700;
+    outline-offset: 4px;
+}
+
+/* Voice-replay button bigger touch target */
+.btn-voice-replay {
+    background: linear-gradient(135deg, #ff7518, #e94520);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    font-size: 1.6rem;
+    cursor: pointer;
+    box-shadow:
+        0 0 0 3px rgba(255,255,255,0.18) inset,
+        0 -3px 0 0 rgba(0,0,0,0.22) inset,
+        0 4px 14px rgba(255,117,24,0.55);
+    margin-top: 6px;
+    animation: cta-bob 3.4s ease-in-out infinite;
+}
+.btn-voice-replay:active { transform: scale(0.9); animation: none; }
+
+/* Room progress pip bar (non-reader friendly: stars/dots, not text) */
+.room-progress-bar {
+    position: absolute;
+    top: 62px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 12;
+    display: flex;
+    gap: 6px;
+    padding: 6px 14px;
+    background: rgba(0,0,0,0.55);
+    border-radius: 999px;
+    border: 1px solid rgba(255,215,0,0.35);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+.room-progress-pip {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: 2px solid rgba(255,215,0,0.3);
+    transition: background 0.2s, transform 0.2s;
+}
+.room-progress-pip.earned {
+    background: radial-gradient(circle at 35% 32%, #fff4a8 0%, #ffd700 60%, #b8860b 100%);
+    border-color: #ffd700;
+    box-shadow: 0 0 8px rgba(255,215,0,0.7);
+}
+.room-progress-pip.current {
+    transform: scale(1.18);
+    background: radial-gradient(circle at 35% 32%, #ffe082 0%, #ff9a40 100%);
+    border-color: #ff7518;
+    box-shadow: 0 0 12px rgba(255,117,24,0.75);
+    animation: pip-pulse 1.4s ease-in-out infinite;
+}
+@keyframes pip-pulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(255,117,24,0.55); }
+    50%       { box-shadow: 0 0 18px rgba(255,117,24,0.95); }
+}
+
+/* Daily-return celebration (same family as Spidey) */
+.return-celebration-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(13,13,43,0.78);
+    animation: rc-fade 0.3s ease forwards;
+    pointer-events: none;
+}
+.return-celebration-card {
+    background: linear-gradient(135deg, #1a0a3e 0%, #2a124e 100%);
+    border: 3px solid #ff7518;
+    border-radius: 28px;
+    padding: 28px 40px;
+    text-align: center;
+    box-shadow:
+        0 0 0 4px rgba(255,117,24,0.25) inset,
+        0 8px 40px rgba(255,117,24,0.6),
+        0 0 80px rgba(255,117,24,0.4);
+    animation: rc-pop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+.return-celebration-icon {
+    font-size: 4rem;
+    line-height: 1;
+    margin-bottom: 8px;
+    animation: rc-bounce 0.6s ease-in-out infinite alternate;
+}
+.return-celebration-text {
+    font-family: 'Fredoka One', sans-serif;
+    font-size: 1.8rem;
+    color: #ffd700;
+    text-shadow: 0 0 18px rgba(255,215,0,0.6);
+}
+.return-celebration-sub {
+    margin-top: 6px;
+    font-size: 1.1rem;
+    color: #e8d5ff;
+}
+@keyframes rc-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rc-pop {
+    0%   { transform: scale(0.6); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+@keyframes rc-bounce {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-8px); }
+}
+
+/* Lucky-reward badge overlay (variable reward burst) */
+.lucky-reward {
+    position: fixed;
+    left: 50%;
+    top: 38%;
+    transform: translate(-50%, -50%) scale(0);
+    z-index: 9000;
+    background: linear-gradient(135deg, #ffd700 0%, #ff7518 100%);
+    color: #1a0a3e;
+    font-family: 'Fredoka One', sans-serif;
+    font-size: 1.4rem;
+    padding: 14px 26px;
+    border-radius: 999px;
+    box-shadow:
+        0 0 0 4px rgba(255,255,255,0.4) inset,
+        0 8px 30px rgba(255,215,0,0.7);
+    animation: lucky-pop 1.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    pointer-events: none;
+    white-space: nowrap;
+}
+@keyframes lucky-pop {
+    0%   { transform: translate(-50%, -50%) scale(0) rotate(-12deg); opacity: 0; }
+    20%  { transform: translate(-50%, -50%) scale(1.15) rotate(4deg); opacity: 1; }
+    60%  { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+    100% { transform: translate(-50%, -55%) scale(0.9) rotate(0deg); opacity: 0; }
+}

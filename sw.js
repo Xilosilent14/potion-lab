@@ -1,10 +1,11 @@
-/* Jack's Potion Lab - Service Worker v1.0 */
-const CACHE = 'potion-lab-v21';
+/* Jack's Potion Lab - Service Worker v1.2 */
+const CACHE = 'potion-lab-v22';
 const ASSETS = [
   '/',
   '/index.html',
   '/css/shared/design-system.css',
   '/css/game.css',
+  '/js/error-boundary.js',
   '/js/otb-config.js',
   '/js/ecosystem.js',
   '/js/cloud-tts.js',
@@ -12,6 +13,7 @@ const ASSETS = [
   '/js/engine.js',
   '/js/audio.js',
   '/js/progress.js',
+  '/js/analytics.js',
   '/data/potions.js',
   '/assets/bg-splash.png',
   '/assets/bg-room1.png',
@@ -58,7 +60,8 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
-// Always fetch version.json from network (auto-update check)    if (e.request.url.includes('version.json') || e.request.url.includes('auto-update.js')) return;
+  // Always fetch version.json and auto-update.js from network (auto-update check)
+  if (e.request.url.includes('version.json') || e.request.url.includes('auto-update.js')) return;
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
       if (res.ok) {

@@ -91,29 +91,44 @@ const PotionEngine = (() => {
   const zeroImg = document.createElement('img');
   zeroImg.src = 'assets/zero-sprite.png';
 
+  // Lazy room-bg loading. We only eagerly load the splash (index 0).
+  // Other room backgrounds load on demand when setRoom(n) is called.
+  // 14 DALL-E PNGs at full resolution is heavy for a Fire tablet — keep
+  // memory + decode cost off the boot path.
+  const BG_PATHS = [
+    'assets/bg-splash.png',
+    'assets/bg-room1.png',
+    'assets/bg-room2.png',
+    'assets/bg-room3.png',
+    'assets/bg-room4.png',
+    'assets/bg-room5.png',
+    'assets/bg-room6.png',
+    'assets/bg-room7.png',
+    'assets/bg-room8.png',
+    'assets/bg-room9.png',
+    'assets/bg-room10.png',
+    'assets/bg-room11.png',
+    'assets/bg-room12.png',
+    'assets/bg-room13.png',
+    'assets/bg-room14.png'
+  ];
+  // Track which slots have been requested so we don't refetch.
+  const bgRequested = new Array(BG_PATHS.length).fill(false);
+
+  function _ensureBg(idx) {
+    if (idx < 0 || idx >= BG_PATHS.length) return;
+    if (bgRequested[idx]) return;
+    bgRequested[idx] = true;
+    const img = document.createElement('img');
+    try { img.decoding = 'async'; } catch (_) {}
+    try { img.loading = 'lazy'; } catch (_) {}
+    img.src = BG_PATHS[idx];
+    bgImages[idx] = img;
+  }
+
   function preloadBgImages() {
-    const paths = [
-      'assets/bg-splash.png',
-      'assets/bg-room1.png',
-      'assets/bg-room2.png',
-      'assets/bg-room3.png',
-      'assets/bg-room4.png',
-      'assets/bg-room5.png',
-      'assets/bg-room6.png',
-      'assets/bg-room7.png',
-      'assets/bg-room8.png',
-      'assets/bg-room9.png',
-      'assets/bg-room10.png',
-      'assets/bg-room11.png',
-      'assets/bg-room12.png',
-      'assets/bg-room13.png',
-      'assets/bg-room14.png'
-    ];
-    paths.forEach((src, i) => {
-      const img = document.createElement('img');
-      img.src = src;
-      bgImages[i] = img;
-    });
+    // Only the splash/menu image up-front. Room backgrounds load on setRoom().
+    _ensureBg(0);
   }
 
   function resize() {
@@ -1267,6 +1282,10 @@ const PotionEngine = (() => {
 
   function setRoom(n) {
     currentRoom = Math.max(0, Math.min(ROOMS.length - 1, n));
+    // Lazy-load this room's background image (and prefetch the next one
+    // so room-to-room transitions feel instant).
+    _ensureBg(currentRoom + 1);
+    _ensureBg(Math.min(BG_PATHS.length - 1, currentRoom + 2));
   }
 
   function jackTalk() {

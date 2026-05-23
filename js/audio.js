@@ -14,6 +14,15 @@ const PotionAudio = (() => {
   let currentRoomIndex = 0; // 0-based room index
   let loopGeneration = 0;   // incremented on room change to kill stale loops
 
+  // Compressor sits before masterGain as a tablet-speaker-safe brickwall limiter.
+  // Tablet speakers distort quickly, so we keep peaks tame.
+  let compressor = null;
+  // Music base gain (target volume when no duck is happening)
+  const MUSIC_BASE = 0.35;
+  const SFX_BASE = 0.8;
+  // Ducking state
+  let _duckTimer = null;
+
   function ensureContext() {
     if (ctx) return;
     try {
@@ -23,15 +32,53 @@ const PotionAudio = (() => {
     }
     masterGain = ctx.createGain();
     masterGain.gain.value = 0.7;
+
+    // Tablet-safe compressor (Kenney/Web Audio recipe).
+    try {
+      compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.value = -18;
+      compressor.knee.value = 30;
+      compressor.ratio.value = 8;
+      compressor.attack.value = 0.005;
+      compressor.release.value = 0.25;
+      compressor.connect(masterGain);
+    } catch (e) {
+      compressor = null;
+    }
     masterGain.connect(ctx.destination);
 
     musicGain = ctx.createGain();
-    musicGain.gain.value = 0.35;
-    musicGain.connect(masterGain);
+    musicGain.gain.value = MUSIC_BASE;
+    musicGain.connect(compressor || masterGain);
 
     sfxGain = ctx.createGain();
-    sfxGain.gain.value = 0.8;
-    sfxGain.connect(masterGain);
+    sfxGain.gain.value = SFX_BASE;
+    sfxGain.connect(compressor || masterGain);
+  }
+
+  // Duck music + SFX while Jack speaks. Call with ms duration (best estimate of
+  // utterance length). Auto-restores on the next animation frame after.
+  function _duckForSpeech(ms) {
+    if (!ctx || !musicGain || !musicEnabled) return;
+    if (_duckTimer) { clearTimeout(_duckTimer); _duckTimer = null; }
+    try {
+      const t = ctx.currentTime;
+      // Ramp music down to 30% of base, then back up
+      musicGain.gain.cancelScheduledValues(t);
+      musicGain.gain.setValueAtTime(musicGain.gain.value, t);
+      musicGain.gain.linearRampToValueAtTime(MUSIC_BASE * 0.30, t + 0.18);
+    } catch (e) {}
+    const dur = Math.max(400, Math.min(8000, ms || 2400));
+    _duckTimer = setTimeout(() => {
+      _duckTimer = null;
+      if (!ctx || !musicGain) return;
+      try {
+        const t2 = ctx.currentTime;
+        musicGain.gain.cancelScheduledValues(t2);
+        musicGain.gain.setValueAtTime(musicGain.gain.value, t2);
+        musicGain.gain.linearRampToValueAtTime(musicEnabled ? MUSIC_BASE : 0, t2 + 0.45);
+      } catch (e) {}
+    }, dur);
   }
 
   // MP3 sound effect cache
@@ -272,15 +319,35 @@ const PotionAudio = (() => {
   /* ---- Halloween Town ambient music engine ---- */
   // MP3 background music
   let _bgmAudio = null;
+  let _bgmNode = null;
   function startMusic() {
     if (!musicEnabled) return;
     ensureContext();
     resume();
     // Play MP3 music loop
     if (!_bgmAudio) {
-      _bgmAudio = document.createElement('audio'); _bgmAudio.src = 'assets/sounds/music/bgm-potion.mp3';
+      _bgmAudio = document.createElement('audio');
+      _bgmAudio.src = 'assets/sounds/music/bgm-potion.mp3';
       _bgmAudio.loop = true;
+      _bgmAudio.crossOrigin = 'anonymous';
+      _bgmAudio.preload = 'auto';
       _bgmAudio.volume = 0.12;
+      // Route through Web Audio so the compressor + duck gain affect music.
+      try {
+        if (ctx && !_bgmNode) {
+          _bgmNode = ctx.createMediaElementSource(_bgmAudio);
+          _bgmNode.connect(musicGain);
+          // Silence the HTMLMediaElement output path; routing goes via WebAudio.
+          _bgmAudio.volume = 1.0;
+        }
+      } catch (_) { /* MediaElementSource can only be created once; ignore on hot reload */ }
+      // Loop-point click guard: when the track approaches its end, seek to a
+      // tiny offset before zero so the decoded silence at the boundary is short.
+      _bgmAudio.addEventListener('timeupdate', () => {
+        if (_bgmAudio && _bgmAudio.duration && _bgmAudio.duration - _bgmAudio.currentTime < 0.05) {
+          try { _bgmAudio.currentTime = 0.01; } catch (_) {}
+        }
+      });
       _bgmAudio.play().catch(() => {});
     }
     if (bgStarted) return;
@@ -516,10 +583,14 @@ const PotionAudio = (() => {
   }
 
   function playCauldronBubble() {
-    if (_playMP3('cauldron-bubble', 0.5)) return;
+    if (_playMP3('cauldron-bubble', 0.5)) {
+      // Layer an occasional high pop alongside the cached MP3 (~30% chance)
+      if (sfxEnabled && Math.random() < 0.3) _bubblePop();
+      return;
+    }
     if (!sfxEnabled) return;
     ensureContext(); resume();
-    // Low bubble pop
+    // Layer 1: low bubble swell
     const osc = ctx.createOscillator();
     const env = ctx.createGain();
     osc.type = 'sine';
@@ -531,6 +602,28 @@ const PotionAudio = (() => {
     env.connect(sfxGain);
     osc.start();
     osc.stop(ctx.currentTime + 0.2);
+    // Layer 2: occasional high pop (~30% chance) for liveliness
+    if (Math.random() < 0.3) _bubblePop();
+  }
+
+  // Tiny high-frequency "pop" — adds organic variety to the bubble layer.
+  function _bubblePop() {
+    ensureContext();
+    if (!ctx || !sfxGain) return;
+    const t = ctx.currentTime + 0.04 + Math.random() * 0.08;
+    const osc = ctx.createOscillator();
+    const env = ctx.createGain();
+    osc.type = 'sine';
+    const f = 900 + Math.random() * 700;
+    osc.frequency.setValueAtTime(f, t);
+    osc.frequency.exponentialRampToValueAtTime(f * 0.55, t + 0.06);
+    env.gain.setValueAtTime(0.0001, t);
+    env.gain.exponentialRampToValueAtTime(0.18, t + 0.005);
+    env.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    osc.connect(env);
+    env.connect(sfxGain);
+    osc.start(t);
+    osc.stop(t + 0.1);
   }
 
   function playCauldronErupt() {
@@ -639,10 +732,18 @@ const PotionAudio = (() => {
       if (typeof optsOrOnEnd.rate === 'number') rate = optsOrOnEnd.rate;
     }
 
+    // Estimate utterance duration: ~3 words/sec at rate=1, scale by rate.
+    const wordCount = Math.max(1, (text || '').trim().split(/\s+/).length);
+    const estMs = Math.round((wordCount / (3 * rate)) * 1000) + 400;
+    _duckForSpeech(estMs);
+
     // Use Google Cloud TTS (works on Silk, no speechSynthesis needed) — wrap in try/catch
     if (typeof CloudTTS !== 'undefined') {
       try {
-        CloudTTS.speakJack(text, { rate: rate, onEnd: onEnd });
+        const wrappedOnEnd = function () {
+          if (onEnd) try { onEnd(); } catch (_) {}
+        };
+        CloudTTS.speakJack(text, { rate: rate, onEnd: wrappedOnEnd });
         return;
       } catch (err) {
         console.warn('[PotionAudio] CloudTTS.speakJack threw, falling back to native Web Speech:', err);
@@ -677,6 +778,8 @@ const PotionAudio = (() => {
       gain.gain.value = volume;
       source.connect(gain);
       gain.connect(sfxGain);
+      // Duck music for the duration of the cached TTS clip
+      try { _duckForSpeech(Math.round(source.buffer.duration * 1000) + 200); } catch (_) {}
       source.start(0);
       return true;
     }
