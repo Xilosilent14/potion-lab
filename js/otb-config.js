@@ -7,15 +7,19 @@ const OTBConfig = (() => {
     const host = window.location.hostname;
     const isLocal = host === 'localhost' || host === '127.0.0.1';
 
-    // Production URLs (bbgaming.shutterbuzzent.com sub-paths)
+    // Production URLs: the same origin the page came from, so the games work at
+    // any address they are served from (games.unratedguild.com from 2026-11,
+    // or bbgaming.pages.dev). bbgaming.shutterbuzzent.com was retired when
+    // shutterbuzzent.com lapsed on 2026-11-12.
+    const origin = window.location.origin;
     const PRODUCTION_URLS = {
-        hub: 'https://bbgaming.shutterbuzzent.com',
-        'think-fast': 'https://bbgaming.shutterbuzzent.com/thinkfast',
-        'word-mine': 'https://bbgaming.shutterbuzzent.com/wordmine',
-        'rhythm-blast': 'https://bbgaming.shutterbuzzent.com/rhythmblast',
-        'creature-cards': 'https://bbgaming.shutterbuzzent.com/creaturecards',
-        'spidey-academy': 'https://bbgaming.shutterbuzzent.com/spidey',
-        'potion-lab': 'https://bbgaming.shutterbuzzent.com/potionlab'
+        hub: origin,
+        'think-fast': origin + '/thinkfast',
+        'word-mine': origin + '/wordmine',
+        'rhythm-blast': origin + '/rhythmblast',
+        'creature-cards': origin + '/creaturecards',
+        'spidey-academy': origin + '/spidey',
+        'potion-lab': origin + '/potionlab'
     };
 
     // Local dev URLs
